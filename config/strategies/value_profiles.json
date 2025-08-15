@@ -1,0 +1,80 @@
+{
+  "global": {
+    "cache_dir": "./value_cache",
+    "cache_ttl": 86400,
+    "num_processes": 4,
+    "profiles_to_run": ["conservative_value", "quality_value", "cyclical_value"]
+  },
+  "profiles": {
+    "conservative_value": {
+      "strategy_type": "value",
+      "name": "KONSERVATIV VALUE - Sikre Underprissede Aktier",
+      "parameters": {
+        "min_market_cap": 500000000,
+        "max_market_cap": 20000000000,
+        "max_pe_ratio": 12.0,
+        "max_pb_ratio": 1.2,
+        "max_ev_ebitda": 8.0,
+        "min_dividend_yield": 2.5,
+        "max_debt_to_equity": 0.5,
+        "min_interest_coverage": 4.0,
+        "min_current_ratio": 1.5,
+        "min_roe": 0.12,
+        "min_positive_eps_years": 10
+      },
+      "description": "Sikre, underprissede aktier med stærk balance og konsistent profit",
+      "required_metrics": [
+        "pe_ratio", "pb_ratio", "ev_ebitda", "dividend_yield",
+        "debt_to_equity", "interest_coverage", "current_ratio",
+        "roe", "positive_eps_years"
+      ]
+    },
+    "quality_value": {
+      "strategy_type": "value",
+      "name": "KVALITETS VALUE - Høj ROE Underprissede Aktier",
+      "parameters": {
+        "min_market_cap": 1000000000,
+        "max_market_cap": 50000000000,
+        "max_pe_ratio": 15.0,
+        "max_pb_ratio": 2.0,
+        "max_ev_ebitda": 10.0,
+        "min_dividend_yield": 1.5,
+        "max_debt_to_equity": 0.7,
+        "min_interest_coverage": 3.0,
+        "min_current_ratio": 1.2,
+        "min_roe": 0.15,
+        "min_positive_eps_years": 15
+      },
+      "description": "Høj kvalitetsaktier til en fair pris med bæredygtig konkurrencefordel",
+      "required_metrics": [
+        "pe_ratio", "pb_ratio", "ev_ebitda", "dividend_yield",
+        "debt_to_equity", "interest_coverage", "current_ratio",
+        "roe", "positive_eps_years"
+      ]
+    },
+    "cyclical_value": {
+      "strategy_type": "value",
+      "name": "CYKLISK VALUE - Underprissede Cykliske Aktier",
+      "parameters": {
+        "min_market_cap": 500000000,
+        "max_market_cap": 30000000000,
+        "max_pe_ratio": 10.0,
+        "max_pb_ratio": 1.0,
+        "max_ev_ebitda": 6.0,
+        "min_dividend_yield": 3.0,
+        "max_debt_to_equity": 0.6,
+        "min_interest_coverage": 2.5,
+        "min_current_ratio": 1.0,
+        "min_roe": 0.10,
+        "min_positive_eps_years": 5,
+        "cyclical_industries": ["Energy", "Materials", "Industrials", "Financials"]
+      },
+      "description": "Cykliske aktier underprissede ved nedre del af cyklus",
+      "required_metrics": [
+        "pe_ratio", "pb_ratio", "ev_ebitda", "dividend_yield",
+        "debt_to_equity", "interest_coverage", "current_ratio",
+        "roe", "positive_eps_years", "sector"
+      ]
+    }
+  }
+}

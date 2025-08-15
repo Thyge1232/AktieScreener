@@ -1,0 +1,74 @@
+{
+  "discounted_cash_flow": {
+    "name": "Diskonteret Kontantstrøm (DCF)",
+    "category": "fundamental",
+    "required_parameters": [
+      "free_cash_flow",
+      "growth_rate_short_term",
+      "growth_rate_long_term",
+      "discount_rate",
+      "terminal_growth_rate"
+    ],
+    "default_parameters": {
+      "growth_rate_short_term": 0.05,
+      "growth_rate_long_term": 0.02,
+      "discount_rate": 0.08,
+      "terminal_growth_rate": 0.025,
+      "years_short_term": 5,
+      "years_long_term": 10
+    },
+    "description": "Beregner virksomhedens værdi baseret på fremtidige kontantstrømme"
+  },
+  "dividend_discount": {
+    "name": "Dividende Diskonteringsmodel (DDM)",
+    "category": "income",
+    "required_parameters": [
+      "dividend",
+      "dividend_growth_rate",
+      "required_return"
+    ],
+    "default_parameters": {
+      "dividend_growth_rate": 0.03,
+      "required_return": 0.07
+    },
+    "description": "Beregner aktiens værdi baseret på fremtidige dividender"
+  },
+  "residual_income": {
+    "name": "Residual Indkomst Model",
+    "category": "fundamental",
+    "required_parameters": [
+      "book_value",
+      "roe",
+      "cost_of_equity"
+    ],
+    "default_parameters": {
+      "cost_of_equity": 0.09
+    },
+    "description": "Beregner værdi baseret på overskudsafkastet over kapitalkost"
+  },
+  "asset_based": {
+    "name": "Aktivbaseret Vurdering",
+    "category": "deep_value",
+    "required_parameters": [
+      "tangible_book_value",
+      "excess_cash",
+      "liabilities"
+    ],
+    "default_parameters": {},
+    "description": "Beregner værdi baseret på virksomhedens reelle aktiver"
+  },
+  "piotroski_f_score": {
+    "name": "Piotroski F-Score",
+    "category": "quality",
+    "required_parameters": [
+      "net_income",
+      "operating_cash_flow",
+      "long_term_debt",
+      "current_ratio",
+      "gross_margin",
+      "asset_turnover"
+    ],
+    "default_parameters": {},
+    "description": "Beregner kvalitetsvurdering baseret på 9 finansielle kriterier"
+  }
+}

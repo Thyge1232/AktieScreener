@@ -1,0 +1,30 @@
+{
+  "multibagger": {
+    "discounted_cash_flow": {
+      "growth_rate_short_term": 0.07,
+      "growth_rate_long_term": 0.03,
+      "terminal_growth_rate": 0.03
+    },
+    "residual_income": {
+      "cost_of_equity": 0.10
+    }
+  },
+  "value": {
+    "discounted_cash_flow": {
+      "growth_rate_short_term": 0.04,
+      "growth_rate_long_term": 0.02,
+      "terminal_growth_rate": 0.02
+    },
+    "dividend_discount": {
+      "dividend_growth_rate": 0.025
+    }
+  },
+  "deep_value": {
+    "asset_based": {
+      "liability_adjustment": 0.1
+    },
+    "piotroski_f_score": {
+      "min_score": 6
+    }
+  }
+}
