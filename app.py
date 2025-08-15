@@ -6,6 +6,9 @@ import io
 from datetime import datetime
 from typing import Dict, Any, List
 import plotly.graph_objects as go
+import time
+
+
 
 # Importer kernekomponenter
 from core.config_loader import ConfigLoader
@@ -17,6 +20,20 @@ from core.reporting.visualization import Visualization
 from utils.helper_functions import get_market_for_ticker, format_currency, format_percentage
 from utils.sector_analysis import analyze_sector_potential, get_sector_recommendations
 from utils.financial_calculations import calculate_piotroski_score
+
+def format_time(seconds):
+    """Formaterer sekunder til en læsbar streng (f.eks. '2m 30s')"""
+    mins = int(seconds // 60)
+    secs = int(seconds % 60)
+    return f"{mins}m {secs}s" if mins > 0 else f"{secs}s"
+
+def calculate_eta(start_time, processed, total):
+    """Beregner estimeret tid tilbage"""
+    elapsed = time.time() - start_time
+    if processed == 0:
+        return 0
+    avg_time = elapsed / processed
+    return avg_time * (total - processed)
 
 def initialize_app():
     """Initialiserer app'en og indlæser nødvendige komponenter"""
@@ -48,6 +65,7 @@ def initialize_app():
 def get_small_cap_tickers(market: List[str]) -> List[str]:
     """Henter small-cap tickers for valgte markeder"""
     tickers = []
+    
     # USA small-caps
     if "USA" in market:
         try:
@@ -59,7 +77,8 @@ def get_small_cap_tickers(market: List[str]) -> List[str]:
             tickers.extend(usa_df['Ticker'].tolist())
         except Exception as e:
             st.warning(f"Fejl ved hentning af USA small-caps: {str(e)}")
-    # EU small-caps
+    
+    # EU small-caps - FJERN $ FORAN TILKYNDELSENE
     if "Europa" in market:
         eu_tickers = [
             'ALFEN.AS', 'CTP.AS', 'KNX.DE', 'NEM.DE', 'SAE.DE', 'ATOS.PA', 'EL.PA',
@@ -70,6 +89,7 @@ def get_small_cap_tickers(market: List[str]) -> List[str]:
             'BWG.L', 'CAKE.L', 'DOTD.L', 'FEVR.L', 'GB00.L'
         ]
         tickers.extend(eu_tickers)
+    
     # Asien small-caps
     if "Asien" in market:
         asian_tickers = [
@@ -77,6 +97,7 @@ def get_small_cap_tickers(market: List[str]) -> List[str]:
             '2318.HK', '3690.HK', '9888.HK', '6098.HK'
         ]
         tickers.extend(asian_tickers)
+    
     # Emerging Markets
     if "Emerging Markets" in market:
         em_tickers = [
@@ -84,14 +105,46 @@ def get_small_cap_tickers(market: List[str]) -> List[str]:
             'ITSA4.SA', 'PETR4.SA', 'VALE', 'CIEL3.SA'
         ]
         tickers.extend(em_tickers)
-    return list(set(tickers))  # Fjern dubletter
+    
+    # FJERN $ FORAN TILKYNDELSENE OG RENS TILKYNDELSER
+    cleaned_tickers = []
+    for ticker in tickers:
+        # Fjern $ foran ticker
+        if ticker.startswith('$'):
+            ticker = ticker[1:]
+        
+        # Rens ticker (fjern eventuelle ekstra tegn)
+        if '.' in ticker:
+            parts = ticker.split('.')
+            ticker = f"{parts[0]}.{parts[1][0]}"  # Beholder kun det første tegn efter punktum
+        
+        cleaned_tickers.append(ticker)
+    
+    return list(set(cleaned_tickers))  # Fjern dubletter
 
 def format_results(results: List[Dict[str, Any]], profile: Dict[str, Any]) -> pd.DataFrame:
     """Formaterer screening resultater til DataFrame"""
     if not results:
         return pd.DataFrame()
+    
+    # Konverter til DataFrame
     df = pd.DataFrame(results)
+    
+    # Sikr at alle nødvendige kolonner findes
+    if "sector" in df.columns:
+        df["Sektor"] = df["sector"]
+    else:
+        df["Sektor"] = "Ukendt"
+    
+    if "country" in df.columns:
+        df["Land"] = df["country"]
+    else:
+        df["Land"] = "Ukendt"
+    
+    # Tilføj strategy_type
     df["strategy_type"] = profile.get("strategy_type", "multibagger")
+    
+    # Find den relevante score-kolonne
     score_col = None
     if "multibagger_score" in df.columns:
         score_col = "multibagger_score"
@@ -105,20 +158,30 @@ def format_results(results: List[Dict[str, Any]], profile: Dict[str, Any]) -> pd
     elif "combined_score" in df.columns:
         score_col = "combined_score"
         df = df.rename(columns={"combined_score": "Kombineret Score"})
+    
+    # Formater kolonner
     if "market_cap" in df.columns:
         df["Markedsværdi"] = df["market_cap"].apply(lambda x: format_currency(x))
+    
     if "current_price" in df.columns:
         df["Aktuel pris"] = df["current_price"].apply(lambda x: format_currency(x))
+    
     if "revenue_growth" in df.columns:
         df["Omsætning Vækst"] = df["revenue_growth"].apply(format_percentage)
+    
     if "eps_growth" in df.columns:
         df["EPS Vækst"] = df["eps_growth"].apply(format_percentage)
+    
     if "roe" in df.columns:
         df["ROE"] = df["roe"].apply(format_percentage)
+    
     if "peg_ratio" in df.columns:
         df["PEG Ratio"] = df["peg_ratio"].apply(lambda x: f"{x:.2f}" if x else "N/A")
+    
     if "dividend_yield" in df.columns:
         df["Dividendeafkast"] = df["dividend_yield"].apply(format_percentage)
+    
+    # Vælg relevante kolonner
     strategy_type = profile.get("strategy_type", "multibagger")
     if strategy_type == "multibagger":
         columns = [
@@ -140,38 +203,67 @@ def format_results(results: List[Dict[str, Any]], profile: Dict[str, Any]) -> pd
             "Ticker", "Navn", "Sektor", "Land", "Markedsværdi", "Aktuel pris",
             "Kombineret Score", "Omsætning Vækst", "EPS Vækst", "PE Ratio", "ROE"
         ]
+    
+    # Sikr at alle kolonner eksisterer
     available_columns = [col for col in columns if col in df.columns]
-    return df[available_columns]
+    
+    # Tilføj manglende kolonner med "N/A" værdier
+    for col in columns:
+        if col not in df.columns:
+            df[col] = "N/A"
+    
+    return df[columns]
 
 def display_screening_results(results: Dict[str, pd.DataFrame]):
     """Viser screening resultater i UI"""
     st.subheader("📊 Screening Resultater")
+    
+    # Opret tabs for hver profil
     tabs = st.tabs(list(results.keys()))
+    
     for i, (profile_name, df) in enumerate(results.items()):
         with tabs[i]:
             if df.empty:
                 st.warning("Ingen aktier opfyldte kriterierne for denne profil")
             else:
+                # Vis top 10 aktier
                 st.subheader("🏆 Top 10 Aktier")
                 st.dataframe(df.head(10), use_container_width=True)
+                
+                # Vis sektordistribution - HÅNDTÉR MANGLENDE SEKTORKOLONNE
                 col1, col2 = st.columns([1, 2])
                 with col1:
                     st.subheader("📈 Sektorfordeling")
-                    sector_counts = df["Sektor"].value_counts()
-                    for sector, count in sector_counts.items():
-                        st.metric(sector, f"{count} aktier")
+                    
+                    # Tjek om "Sektor" kolonnen findes
+                    if "Sektor" in df.columns:
+                        sector_counts = df["Sektor"].value_counts()
+                        for sector, count in sector_counts.items():
+                            st.metric(sector, f"{count} aktier")
+                    else:
+                        st.info("Sektordata ikke tilgængelig")
+                
                 with col2:
-                    fig = st.session_state.visualization.sector_distribution_chart(df.to_dict('records'))
-                    st.plotly_chart(fig, use_container_width=True)
+                    # Tjek om "Sektor" kolonnen findes før visualisering
+                    if "Sektor" in df.columns:
+                        fig = st.session_state.visualization.sector_distribution_chart(df.to_dict('records'))
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.info("Sektordistribution ikke tilgængelig")
+                
+                # Vis scorefordeling
                 st.subheader("🔍 Score Fordeling")
                 fig = st.session_state.visualization.score_distribution_chart(df.to_dict('records'))
                 st.plotly_chart(fig, use_container_width=True)
+                
+                # Download knap
                 output = st.session_state.report_generator.generate_screening_report(
                     df.to_dict('records'), 
                     st.session_state.config_loader.load_strategy_profiles(
                         st.session_state.current_strategy
                     )["profiles"][profile_name]
                 )
+                
                 st.download_button(
                     label="📥 Download Resultater som Excel",
                     data=output.getvalue(),
@@ -241,8 +333,10 @@ def display_valuation_results(ticker: str, metrics: Dict[str, Any], result: Dict
             st.warning("Kunne ikke hente historiske data")
 
 def strategy_screening_tab():
-    """UI til strategisk screening"""
+    """UI til strategisk screening med fremdriftsindikator"""
     st.header("📈 Strategi Screening")
+    
+    # Strategivalg
     strategy_type = st.selectbox(
         "Vælg investeringsstrategi",
         ["multibagger", "value", "deep_value", "combined"],
@@ -254,9 +348,15 @@ def strategy_screening_tab():
         }[x],
         key="strategy_type_selector"
     )
+    
+    # Gem valgt strategi i session state
     st.session_state.current_strategy = strategy_type
+    
+    # Hent relevante profiler
     config_loader = st.session_state.config_loader
     profiles = config_loader.load_strategy_profiles(strategy_type)["profiles"]
+    
+    # Profilvalg
     st.subheader("PropertyParams")
     selected_profiles = st.multiselect(
         "Vælg profiler",
@@ -265,19 +365,27 @@ def strategy_screening_tab():
         format_func=lambda x: profiles[x]["name"],
         key="selected_profiles"
     )
+    
+    # Markedsvalg
     market = st.multiselect(
         "Vælg markeder",
         ["USA", "Europa", "Asien", "Emerging Markets", "Global"],
         default=["USA", "Europa"],
         key="market_selector"
     )
+    
+    # Avancerede indstillinger
     with st.expander("PropertyParams"):
         if selected_profiles:
             profile = profiles[selected_profiles[0]]
             params = profile["parameters"]
+            
             st.write(f"PropertyParams for {profile['name']}")
+            
+            # Opret to kolonner for parametre
             cols = st.columns(2)
             col_idx = 0
+            
             for param, value in params.items():
                 with cols[col_idx % 2]:
                     if isinstance(value, bool):
@@ -294,16 +402,76 @@ def strategy_screening_tab():
                         )
                     params[param] = new_value
                     col_idx += 1
+    
+    # Start screening knap
     if st.button("Start Screening", type="primary", use_container_width=True):
         with st.spinner("Kører screening... Dette kan tage 2-5 minutter."):
+            # Hent relevante tickers baseret på markeder
             tickers = get_small_cap_tickers(market)
+            total_tickers = len(tickers)
+            
+            if not tickers:
+                st.warning("Ingen tickers fundet for de valgte markeder")
+                return
+                
+            # Vis fremdrift
+            progress_bar = st.progress(0)
+            status_container = st.empty()
+            time_container = st.empty()
+            
+            # Initialiser tid
+            start_time = time.time()
+            processed = 0
+            
+            # Udfør screening for valgte profiler
             all_results = {}
             for profile_name in selected_profiles:
                 profile = profiles[profile_name]
-                results = st.session_state.screener.screen(tickers, profile)
+                results = []
+                
+                # Opdater status
+                status_container.markdown(f"**Screening med {profile['name']}**\n\nProcesserer tickers...")
+                
+                # Loop igennem alle tickers
+                for i, ticker in enumerate(tickers):
+                    # Hent data
+                    metrics = st.session_state.data_fetcher.fetch_all_metrics(ticker, strategy_type)
+                    
+                    # Tjek om aktien opfylder kriterier
+                    if metrics and st.session_state.screener._passes_filters(metrics, profile["parameters"]):
+                        # Beregn score
+                        metrics["score"] = st.session_state.screener.calculate_strategy_score(metrics, profile)
+                        results.append(metrics)
+                    
+                    # Opdater fremdrift
+                    processed = i + 1
+                    progress = processed / total_tickers
+                    progress_bar.progress(progress)
+                    
+                    # Beregn tid og estimeret tid tilbage
+                    elapsed_time = time.time() - start_time
+                    avg_time_per_ticker = elapsed_time / processed if processed > 0 else 0
+                    estimated_time_remaining = avg_time_per_ticker * (total_tickers - processed)
+                    
+                    # Opdater status
+                    status = f"Processerer ticker {processed}/{total_tickers}"
+                    time_info = f"Brugt tid: {format_time(elapsed_time)} | Estimeret tid tilbage: {format_time(estimated_time_remaining)}"
+                    
+                    status_container.markdown(f"**Screening med {profile['name']}**\n\n{status}")
+                    time_container.text(time_info)
+                
                 if results:
+                    # Konverter til DataFrame og tilføj til resultater
                     df = format_results(results, profile)
                     all_results[profile_name] = df
+            
+            # Vis færdigmeddelelse
+            progress_bar.progress(1.0)
+            status_container.markdown(f"**Screening fuldført!**\n\nFundet {sum(len(df) for df in all_results.values())} aktier der opfylder kriterierne")
+            total_time = time.time() - start_time
+            time_container.text(f"Total tid: {format_time(total_time)}")
+            
+            # Gem resultater i session state
             if all_results:
                 st.session_state.screening_results = all_results
                 display_screening_results(all_results)

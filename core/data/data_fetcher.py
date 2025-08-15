@@ -29,12 +29,18 @@ class UniversalDataFetcher:
         try:
             stock = yf.Ticker(ticker)
             info = stock.info
+            
+            # Tjek om ticker er gyldig
+            if not info or 'symbol' not in info or not info['symbol']:
+                print(f"Ugyldig ticker: {ticker}")
+                return None
+                
             metrics = {
                 "ticker": ticker,
                 "name": info.get("shortName", "N/A"),
-                "sector": info.get("sector", "N/A"),
-                "industry": info.get("industry", "N/A"),
-                "country": info.get("country", "N/A"),
+                "sector": info.get("sector", "Ukendt"),
+                "industry": info.get("industry", "Ukendt"),
+                "country": info.get("country", "Ukendt"),
                 "market_cap": info.get("marketCap", 0),
                 "current_price": info.get("currentPrice", info.get("regularMarketPrice", 0)),
                 "avg_volume": info.get("averageVolume", 0),
