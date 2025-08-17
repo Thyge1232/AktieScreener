@@ -1,115 +1,158 @@
-from typing import Dict, List, Any
+from typing import Dict, Any, List
+import logging
+
+logger = logging.getLogger(__name__)
 
 class UniversalScreener:
-    """Fælles screening engine for alle investeringsstrategier"""
+    """
+    En centraliseret screening-motor, der fungerer som en dispatcher.
+    Den delegerer den specifikke logik for filtrering og score-beregning
+    til de relevante, strategi-specifikke screener-klasser.
+    """
     
-    def __init__(self, data_fetcher):
+    def __init__(self, data_fetcher: Any):
+        """
+        Initialiserer screeneren med en data_fetcher.
+        
+        Args:
+            data_fetcher: Et objekt, der kan hente finansielle data (f.eks. UniversalDataFetcher).
+        """
         self.data_fetcher = data_fetcher
-        self.strategy_screener = {
-            "multibagger": self._screen_multibagger,
-            "value": self._screen_value,
-            "deep_value": self._screen_deep_value,
-            "combined": self._screen_combined
-        }
+        # Cache til strategy screeners for at undgå at oprette dem hver gang
+        self._strategy_screeners = {}
     
-    def screen(self, tickers: List[str], profile: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Udfører screening baseret på profilens strategy_type"""
+    def _get_strategy_screener(self, strategy_type: str):
+        """Henter eller opretter en strategy screener"""
+        if strategy_type not in self._strategy_screeners:
+            if strategy_type == "multibagger":
+                from .multibagger_screener import MultibaggerScreener
+                self._strategy_screeners[strategy_type] = MultibaggerScreener(self.data_fetcher)
+            elif strategy_type == "value":
+                from .value_screener import ValueScreener
+                self._strategy_screeners[strategy_type] = ValueScreener(self.data_fetcher)
+            elif strategy_type == "deep_value":
+                from .deep_value_screener import DeepValueScreener
+                self._strategy_screeners[strategy_type] = DeepValueScreener(self.data_fetcher)
+            else:
+                logger.warning(f"Ukendt strategitype: {strategy_type}")
+                return None
+        
+        return self._strategy_screeners.get(strategy_type)
+    
+    def calculate_strategy_score(self, metrics: Dict[str, Any], profile: Dict[str, Any]) -> float:
+        """
+        Delegerer score-beregning til den korrekte strategi-specifikke screener.
+        """
         strategy_type = profile.get("strategy_type", "multibagger")
         
-        if strategy_type not in self.strategy_screener:
-            raise ValueError(f"Ukendt strategitype: {strategy_type}")
+        if strategy_type == "combined":
+            # For kombinerede profiler kan scoren være beregnet på forhånd
+            return metrics.get("combined_score", 0)
         
-        return self.strategy_screener[strategy_type](tickers, profile)
+        # Hent strategy screener
+        screener = self._get_strategy_screener(strategy_type)
+        if screener:
+            # Kald den private _calculate_score metode som findes i MultibaggerScreener
+            return screener._calculate_score(metrics, profile)
+        else:
+            logger.warning(f"Kunne ikke finde screener for strategitype '{strategy_type}'")
+            return 0.0
     
-    def _screen_multibagger(self, tickers: List[str], profile: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Multibagger-specifik screening logik"""
-        from .multibagger_screener import MultibaggerScreener
-        return MultibaggerScreener(self.data_fetcher).screen(tickers, profile)
+    def _passes_filters(self, metrics: Dict[str, Any], parameters: Dict[str, Any]) -> bool:
+        """
+        Denne metode er til bagudkompatibilitet med den eksisterende app.py kode
+        der kalder st.session_state.screener._passes_filters direkte.
+        """
+        # Dette er en fallback - vi kan ikke vide hvilken strategi der skal bruges
+        # så vi prøver multibagger som default
+        return self.passes_filters_for_profile(metrics, {
+            "strategy_type": "multibagger",
+            "parameters": parameters
+        })
     
-    def _screen_value(self, tickers: List[str], profile: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Value-specifik screening logik"""
-        from .value_screener import ValueScreener
-        return ValueScreener(self.data_fetcher).screen(tickers, profile)
-    
-    def _screen_deep_value(self, tickers: List[str], profile: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Deep value-specifik screening logik"""
-        from .deep_value_screener import DeepValueScreener
-        return DeepValueScreener(self.data_fetcher).screen(tickers, profile)
-    
-    def _screen_combined(self, tickers: List[str], profile: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Kombineret screening logik"""
-        # For kombinerede profiler, udfør screening med underliggende strategier
-        if "weighting" not in profile:
-            raise ValueError("Kombineret profil mangler weighting parameter")
+    def passes_filters_for_profile(self, metrics: Dict[str, Any], profile: Dict[str, Any]) -> bool:
+        """
+        Tjekker, om en akties metrikker opfylder kriterierne for en given profil,
+        ved at delegere til den korrekte strategi-specifikke screener.
+        """
+        strategy_type = profile.get("strategy_type", "multibagger")
+        parameters = profile.get("parameters", {})
         
-        # Identificer underliggende strategier
-        growth_score_weight = profile["weighting"].get("growth_score", 0)
-        value_score_weight = profile["weighting"].get("value_score", 0)
-        deep_value_score_weight = profile["weighting"].get("deep_value_score", 0)
-        
-        results = []
-        for ticker in tickers:
-            # Hent alle metrikker
-            metrics = self.data_fetcher.fetch_all_metrics(ticker)
-            if not metrics:
-                continue
-            
-            # Beregn scores for relevante strategier
-            total_score = 0
-            score_components = {}
-            
-            if growth_score_weight > 0:
-                from .multibagger_screener import MultibaggerScreener
-                growth_score = MultibaggerScreener(self.data_fetcher)._calculate_score(metrics, profile)
-                total_score += growth_score * growth_score_weight
-                score_components["growth_score"] = growth_score
-            
-            if value_score_weight > 0:
-                from .value_screener import ValueScreener
-                value_score = ValueScreener(self.data_fetcher)._calculate_score(metrics, profile)
-                total_score += value_score * value_score_weight
-                score_components["value_score"] = value_score
-            
-            if deep_value_score_weight > 0:
-                from .deep_value_screener import DeepValueScreener
-                deep_value_score = DeepValueScreener(self.data_fetcher)._calculate_score(metrics, profile)
-                total_score += deep_value_score * deep_value_score_weight
-                score_components["deep_value_score"] = deep_value_score
-            
-            # Tjek om aktien opfylder grundlæggende kriterier
-            if self._passes_basic_filters(metrics, profile["parameters"]):
-                metrics["combined_score"] = total_score
-                metrics["score_components"] = score_components
-                results.append(metrics)
-        
-        # Sorter efter combined score
-        results.sort(key=lambda x: x["combined_score"], reverse=True)
-        return results
-    
-    def _passes_basic_filters(self, metrics: Dict[str, Any], params: Dict[str, Any]) -> bool:
-        """Tjekker om aktien opfylder grundlæggende kriterier for en kombineret profil"""
-        # Markedsværdi
-        market_cap = metrics.get("market_cap", 0)
-        if not (params["min_market_cap"] <= market_cap <= params["max_market_cap"]):
+        if not parameters:
+            logger.warning("Ingen parametre fundet i profil")
             return False
+        
+        if strategy_type == "combined":
+            # Implementer basic filter for kombinerede strategier
+            return self._combined_filter(metrics, parameters)
+        
+        # Hent strategy screener
+        screener = self._get_strategy_screener(strategy_type)
+        if screener:
+            # Kald den private _passes_filters metode
+            return screener._passes_filters(metrics, parameters)
+        else:
+            logger.warning(f"Kunne ikke finde screener for strategitype '{strategy_type}'")
+            return False
+    
+    def _combined_filter(self, metrics: Dict[str, Any], parameters: Dict[str, Any]) -> bool:
+        """Basic filter for kombinerede strategier"""
+        # Markedsværdi check
+        market_cap = metrics.get("market_cap", 0)
+        if market_cap == 0:
+            return False
+        
+        min_cap = parameters.get("min_market_cap", 0)
+        max_cap = parameters.get("max_market_cap", float('inf'))
+        
+        if not (min_cap <= market_cap <= max_cap):
+            return False
+        
+        # Basis kvalitetschecks
+        roe = metrics.get("roe")
+        if roe is not None:
+            min_roe = parameters.get("min_roe", -999)  # Meget lav default
+            if roe < min_roe:
+                return False
+        
+        # Revenue growth check hvis det findes
+        revenue_growth = metrics.get("revenue_growth")
+        if revenue_growth is not None:
+            min_rev_growth = parameters.get("min_revenue_growth", -999)
+            if revenue_growth < min_rev_growth:
+                return False
         
         return True
     
-    def calculate_strategy_score(self, metrics: Dict[str, Any], profile: Dict[str, Any]) -> float:
-        """Beregner en strategispecifik score"""
+    def screen_with_profile(self, tickers: List[str], profile: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Kører en komplet screening med en specifik profil
+        """
         strategy_type = profile.get("strategy_type", "multibagger")
+        results = []
         
-        if strategy_type == "multibagger":
-            from .multibagger_screener import MultibaggerScreener
-            return MultibaggerScreener(self.data_fetcher)._calculate_score(metrics, profile)
-        elif strategy_type == "value":
-            from .value_screener import ValueScreener
-            return ValueScreener(self.data_fetcher)._calculate_score(metrics, profile)
-        elif strategy_type == "deep_value":
-            from .deep_value_screener import DeepValueScreener
-            return DeepValueScreener(self.data_fetcher)._calculate_score(metrics, profile)
-        elif strategy_type == "combined":
-            # For kombinerede profiler, brug allerede beregnet score
-            return metrics.get("combined_score", 0)
-        else:
-            return 0
+        # Hvis det er en specifik strategi, brug den direkte
+        if strategy_type in ["multibagger", "value", "deep_value"]:
+            screener = self._get_strategy_screener(strategy_type)
+            if screener and hasattr(screener, 'screen'):
+                return screener.screen(tickers, profile)
+        
+        # Fallback: manual screening
+        for ticker in tickers:
+            try:
+                metrics = self.data_fetcher.fetch_all_metrics(ticker, strategy_type)
+                if not metrics:
+                    continue
+                    
+                if self.passes_filters_for_profile(metrics, profile):
+                    # Beregn score
+                    metrics["score"] = self.calculate_strategy_score(metrics, profile)
+                    results.append(metrics)
+                    
+            except Exception as e:
+                logger.warning(f"Fejl ved screening af {ticker}: {e}")
+                continue
+        
+        # Sorter efter score
+        results.sort(key=lambda x: x.get("score", 0), reverse=True)
+        return results

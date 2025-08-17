@@ -1,122 +1,132 @@
-import yfinance as yf
-import pandas as pd
-import numpy as np
+# core/data/data_fetcher.py
+
+import requests
 import os
-from typing import Dict, Any, List, Optional
+import time
+from io import StringIO
+import csv
+from diskcache import Cache
+from dotenv import load_dotenv # Indlæs dotenv for at parse .env filen
 
-from .multibagger_metrics import MultibaggerMetricsFetcher
-from .value_metrics import ValueMetricsFetcher
-from .deep_value_metrics import DeepValueMetricsFetcher
+# Indlæs variabler fra .env filen
+load_dotenv()
 
-class UniversalDataFetcher:
-    """Fælles datahåndtering for alle investeringsstrategier"""
-    
-    def __init__(self, cache_dir: str = "./universal_cache"):
-        self.cache_dir = cache_dir
-        self.multibagger_fetcher = MultibaggerMetricsFetcher()
-        self.value_fetcher = ValueMetricsFetcher()
-        self.deep_value_fetcher = DeepValueMetricsFetcher()
-        
-        # Opret cache-mappe hvis den ikke eksisterer
-        if not os.path.exists(cache_dir):
-            os.makedirs(cache_dir)
-    
-    def fetch_all_metrics(self, ticker: str, strategy_type: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Henter alle relevante metrikker baseret på strategitype
-        Hvis ingen strategitype specificeret, hent alle metrikker
-        """
-        try:
-            stock = yf.Ticker(ticker)
-            info = stock.info
-            
-            # Tjek om ticker er gyldig
-            if not info or 'symbol' not in info or not info['symbol']:
-                print(f"Ugyldig ticker: {ticker}")
-                return None
-                
-            metrics = {
-                "ticker": ticker,
-                "name": info.get("shortName", "N/A"),
-                "sector": info.get("sector", "Ukendt"),
-                "industry": info.get("industry", "Ukendt"),
-                "country": info.get("country", "Ukendt"),
-                "market_cap": info.get("marketCap", 0),
-                "current_price": info.get("currentPrice", info.get("regularMarketPrice", 0)),
-                "avg_volume": info.get("averageVolume", 0),
-                "currency": info.get("currency", "USD"),
-                "exchange": info.get("exchange", "N/A")
-            }
-            
-            # Hent strategispecifikke metrikker
-            if strategy_type == "multibagger" or strategy_type is None:
-                metrics.update(self.multibagger_fetcher.fetch_metrics(stock))
-            
-            if strategy_type == "value" or strategy_type is None:
-                metrics.update(self.value_fetcher.fetch_metrics(stock))
-            
-            if strategy_type == "deep_value" or strategy_type is None:
-                metrics.update(self.deep_value_fetcher.fetch_metrics(stock))
-            
-            return metrics
-            
-        except Exception as e:
-            print(f"Fejl ved hentning af data for {ticker}: {str(e)}")
+# Opret cache-mappe
+cache = Cache('.cache_av')
+
+API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
+BASE_URL = "https://www.alphavantage.co/query"
+
+def fetch_stock_data_av(ticker):
+    # Tjek først i cachen
+    cached = cache.get(ticker)
+    if cached is not None:
+        print(f"Cache hit for {ticker}")
+        return cached
+
+    print(f"Henter data for {ticker}...")
+
+    # ---- 1. Hent OVERVIEW (fundamentale data) ----
+    overview_params = {
+        "function": "OVERVIEW",
+        "symbol": ticker,
+        "apikey": API_KEY
+    }
+
+    try:
+        response = requests.get(BASE_URL, params=overview_params)
+        response.raise_for_status()
+        overview_data = response.json()
+
+        overview_data = response.json()
+
+        # --- FEJLFINDING: Print hele API-svaret ---
+        print(f"Rå data fra OVERVIEW API for {ticker}:")
+        print(overview_data) 
+        # --- SLUT FEJLFINDING ---
+
+
+        if not overview_data or "Note" in overview_data:
+            print(f"Advarsel: Ingen data for {ticker}")
+            time.sleep(12)
             return None
-    
-    def fetch_required_metrics(self, ticker: str, required_metrics: List[str]) -> Dict[str, Any]:
-        """Henter kun de specifikke metrikker der er nødvendige for en given profil"""
-        # Identificer hvilken strategi der kræves baseret på metrikkerne
-        strategy_type = self._determine_strategy_from_metrics(required_metrics)
-        
-        # Hent alle metrikker for den pågældende strategi
-        return self.fetch_all_metrics(ticker, strategy_type)
-    
-    def _determine_strategy_from_metrics(self, metrics: List[str]) -> str:
-        """Bestemmer hvilken strategitype der er nødvendig baseret på metrikkerne"""
-        multibagger_metrics = [
-            "revenue_growth", "eps_growth", "gross_margin", "peg_ratio",
-            "price_above_sma50", "rsi", "volume_surge"
-        ]
-        
-        value_metrics = [
-            "pe_ratio", "pb_ratio", "ev_ebitda", "dividend_yield",
-            "current_ratio", "roe", "positive_eps_years"
-        ]
-        
-        deep_value_metrics = [
-            "cash_to_market_cap", "price_to_nca", "price_to_tangible_book",
-            "recent_eps_growth", "news_sentiment"
-        ]
-        
-        # Tæl antallet af metrikker for hver strategi
-        counts = {
-            "multibagger": sum(1 for m in metrics if m in multibagger_metrics),
-            "value": sum(1 for m in metrics if m in value_metrics),
-            "deep_value": sum(1 for m in metrics if m in deep_value_metrics)
+
+        # ---- 2. Behandle fundamentale data ----
+        processed_data = {
+            "MarketCap": float(overview_data.get("MarketCapitalization", 0)),
+            "PERatio": float(overview_data.get("PERatio", 0)),
+            "EPS": float(overview_data.get("EPS", 0)),
+            "Sector": overview_data.get("Sector", "N/A"),
+            "Industry": overview_data.get("Industry", "N/A"),
         }
-        
-        # Returner strategien med flest matchende metrikker
-        return max(counts, key=counts.get)
-    
-    def fetch_financial_statements(self, ticker: str) -> Dict[str, pd.DataFrame]:
-        """Henter finansielle regnskaber for dybere analyse"""
-        try:
-            stock = yf.Ticker(ticker)
-            return {
-                "income_stmt": stock.income_stmt,
-                "balance_sheet": stock.balance_sheet,
-                "cashflow": stock.cashflow
-            }
-        except Exception as e:
-            print(f"Fejl ved hentning af regnskaber for {ticker}: {str(e)}")
-            return {}
-    
-    def fetch_technical_data(self, ticker: str, period: str = "1y", interval: str = "1d") -> pd.DataFrame:
-        """Henter tekniske data for momentum-analyse"""
-        try:
-            stock = yf.Ticker(ticker)
-            return stock.history(period=period, interval=interval)
-        except Exception as e:
-            print(f"Fejl ved hentning af tekniske data for {ticker}: {str(e)}")
-            return pd.DataFrame()
+
+        # ---- 3. Hent tekniske indikatorer ----
+        tech_data = fetch_technical_indicators(ticker)
+        processed_data.update(tech_data)
+
+        # ---- 4. Gem i cache i 1 time ----
+        cache.set(ticker, processed_data, expire=3600)
+        time.sleep(12)  # Rate limit
+        return processed_data
+
+    except Exception as e:
+        print(f"Fejl ved hentning af data for {ticker}: {e}")
+        return None
+
+
+def fetch_technical_indicators(ticker):
+    """Hent tekniske indikatorer som SMA og RSI"""
+    tech_data = {}
+
+    # Simple Moving Average (20 days)
+    sma_params = {
+        "function": "SMA",
+        "symbol": ticker,
+        "interval": "daily",
+        "time_period": 20,
+        "series_type": "close",
+        "apikey": API_KEY
+    }
+    try:
+        response = requests.get(BASE_URL, params=sma_params)
+        data = response.json().get("Technical Analysis: SMA", {})
+        if data:
+            latest_sma = float(list(data.values())[0]["SMA"])
+            tech_data["SMA_20"] = latest_sma
+    except Exception as e:
+        print(f"Fejl ved hentning af SMA for {ticker}: {e}")
+
+    # Relative Strength Index (14 days)
+    rsi_params = {
+        "function": "RSI",
+        "symbol": ticker,
+        "interval": "daily",
+        "time_period": 14,
+        "series_type": "close",
+        "apikey": API_KEY
+    }
+    try:
+        response = requests.get(BASE_URL, params=rsi_params)
+        data = response.json().get("Technical Analysis: RSI", {})
+        if data:
+            latest_rsi = float(list(data.values())[0]["RSI"])
+            tech_data["RSI_14"] = latest_rsi
+    except Exception as e:
+        print(f"Fejl ved hentning af RSI for {ticker}: {e}")
+
+    return tech_data
+
+
+def get_all_listed_stocks():
+    """Hent liste over alle aktier fra NASDAQ og NYSE"""
+    params = {
+        "function": "LISTING_STATUS",
+        "apikey": API_KEY
+    }
+    response = requests.get(BASE_URL, params=params)
+    csv_data = StringIO(response.text)
+    reader = csv.DictReader(csv_data)
+    return [
+        row["symbol"] for row in reader
+        if row["exchange"] in ["NASDAQ", "NYSE"] and row["assetType"] == "Stock"
+    ]

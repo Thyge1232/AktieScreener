@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
 from typing import Dict, Any
+import logging
+logger = logging.getLogger(__name__)
+
 
 class DeepValueMetricsFetcher:
     """Henter deep value-specifikke metrikker"""
@@ -41,9 +44,22 @@ class DeepValueMetricsFetcher:
                 if market_cap > 0:
                     metrics["cash_to_market_cap"] = cash / market_cap
                     metrics["price_to_nca"] = market_cap / nca if nca > 0 else None
-                    metrics["price_to_tangible_book"] = info.get("currentPrice", 0) / (tangible_book_value / info.get("sharesOutstanding", 1)) if tangible_book_value > 0 else None
-        except Exception as e:
-            pass
+                    
+                    shares_outstanding = info.get("sharesOutstanding", 1)
+                    current_price = info.get("currentPrice", 0)
+                    if tangible_book_value > 0 and shares_outstanding > 0:
+                        tangible_book_per_share = tangible_book_value / shares_outstanding
+                        metrics["price_to_tangible_book"] = current_price / tangible_book_per_share
+                    else:
+                        metrics["price_to_tangible_book"] = None
+                else:
+                    metrics["cash_to_market_cap"] = None
+                    metrics["price_to_nca"] = None
+                    metrics["price_to_tangible_book"] = None
+        except Exception:
+            metrics["cash_to_market_cap"] = None
+            metrics["price_to_nca"] = None
+            metrics["price_to_tangible_book"] = None
         
         # EPS-vækst
         try:
@@ -55,14 +71,16 @@ class DeepValueMetricsFetcher:
                     end_eps = net_income.iloc[0]
                     if start_eps > 0:
                         metrics["recent_eps_growth"] = (end_eps / start_eps) ** (1/2) - 1
-        except:
-            pass
+                    else:
+                        metrics["recent_eps_growth"] = None
+                else:
+                    metrics["recent_eps_growth"] = None
+            else:
+                metrics["recent_eps_growth"] = None
+        except Exception:
+            metrics["recent_eps_growth"] = None
         
-        # Nyhedssentiment (simuleret - i virkeligheden ville du bruge en API)
-        try:
-            # Dette er en placeholder - i virkeligheden ville du bruge en nyhedssentiment-API
-            metrics["news_sentiment"] = 0.5  # 0 (negativ) til 1 (positiv)
-        except:
-            pass
+        # Nyhedssentiment (placeholder)
+        metrics["news_sentiment"] = 0.5  # Neutral sentiment
         
         return metrics
