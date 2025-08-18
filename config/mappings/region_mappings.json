@@ -1,0 +1,51 @@
+
+{
+"North America": [
+"USA",
+"Canada",
+"Mexico"
+],
+"EU & UK": [
+"Germany",
+"United Kingdom",
+"France",
+"Ireland",
+"Netherlands",
+"Switzerland",
+"Spain",
+"Italy",
+"Belgium",
+"Sweden",
+"Denmark",
+"Norway",
+"Finland",
+"Austria",
+"Portugal",
+"Poland",
+"Greece"
+],
+"Asia-Pacific": [
+"China",
+"Japan",
+"Hong Kong",
+"Singapore",
+"India",
+"Australia",
+"South Korea",
+"Taiwan",
+"New Zealand"
+],
+"South America": [
+"Brazil",
+"Chile",
+"Argentina",
+"Colombia",
+"Peru"
+],
+"Rest of World": [
+"Israel",
+"South Africa",
+"Turkey",
+"United Arab Emirates"
+]
+}

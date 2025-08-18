@@ -1,0 +1,110 @@
+{
+  "1. Kvalitet (Quality Value)": {
+    "description": "Filosofi: Finder fantastiske selskaber med en bæredygtig konkurrencefordel til en fair pris. Fokuserer på høj profitabilitet og lav gæld.",
+    "min_score": 70,
+    "pre_filters": {
+      "market_cap_filter": { "data_key": "Market Cap", "type": "binary", "operator": "gt", "value": 1000000000 },
+      "roic_pre_filter": { "data_key": "Return on Invested Capital", "type": "binary", "operator": "gt", "value": 0.10 },
+      "debt_pre_filter": { "data_key": "Total Debt/Equity", "type": "binary", "operator": "lt", "value": 0.5 }
+    },
+    "filters": {
+      "roic_scaled": { "data_key": "Return on Invested Capital", "type": "scaled", "min_value": 0.15, "max_value": 0.50, "target_min": 0, "target_max": 25 },
+      "profit_margin_scaled": { "data_key": "Profit Margin", "type": "scaled", "min_value": 0.15, "max_value": 0.40, "target_min": 0, "target_max": 20 },
+      "debt_equity_scaled": { "data_key": "Total Debt/Equity", "type": "scaled", "min_value": 0, "max_value": 0.5, "target_min": 20, "target_max": 0 },
+      "p_fcf_scaled": { "data_key": "P/Free Cash Flow", "type": "scaled", "min_value": 5, "max_value": 25, "target_min": 15, "target_max": 0 },
+      "eps_5y_scaled": { "data_key": "EPS Growth Past 5 Years", "type": "scaled", "min_value": 0.05, "max_value": 0.25, "target_min": 0, "target_max": 10 },
+      "pe_scaled": { "data_key": "P/E", "type": "scaled", "min_value": 5, "max_value": 25, "target_min": 10, "target_max": 0 }
+    }
+  },
+  "2. Deep Value": {
+    "description": "Filosofi: Søger 'cigar-skod'-selskaber med ekstrem rabat på deres aktiver og minimal konkursrisiko. Inspireret af Benjamin Graham.",
+    "min_score": 70,
+    "pre_filters": {
+      "pb_pre_filter": { "data_key": "P/B", "type": "binary", "operator": "lt", "value": 1.0 },
+      "debt_pre_filter": { "data_key": "Total Debt/Equity", "type": "binary", "operator": "lt", "value": 0.5 }
+    },
+    "filters": {
+      "pb_scaled": { "data_key": "P/B", "type": "scaled", "min_value": 0.2, "max_value": 0.7, "target_min": 30, "target_max": 0 },
+      "current_ratio_scaled": { "data_key": "Current Ratio", "type": "scaled", "min_value": 1.5, "max_value": 5, "target_min": 0, "target_max": 20 },
+      "debt_equity_scaled": { "data_key": "Total Debt/Equity", "type": "scaled", "min_value": 0, "max_value": 0.5, "target_min": 20, "target_max": 0 },
+      "ev_ebitda_scaled": { "data_key": "EV/EBITDA", "type": "scaled", "min_value": 1, "max_value": 6, "target_min": 15, "target_max": 0 },
+      "cash_sh_scaled": { "data_key": "Cash/sh", "type": "scaled", "min_value": 0, "max_value": 20, "target_min": 0, "target_max": 15 }
+    }
+  },
+  "3. Turnaround": {
+    "description": "Filosofi: Identificerer selskaber i krise, der viser tidlige tegn på en strukturel forbedring, før markedet opdager det.",
+    "min_score": 65,
+    "pre_filters": {
+      "perf_year_filter": { "data_key": "Performance (Year)", "type": "binary", "operator": "lt", "value": -0.20 }
+    },
+    "filters": {
+      "sales_growth_qoq_scaled": { "data_key": "Sales Growth Quarter Over Quarter", "type": "scaled", "description": "Tidlig vækst i efterspørgsel er afgørende.", "min_value": 0.05, "max_value": 0.30, "target_min": 0, "target_max": 25 },
+      "insider_trans_scaled": { "data_key": "Insider Transactions", "type": "scaled", "min_value": 0.05, "max_value": 0.50, "target_min": 0, "target_max": 20 },
+      "eps_this_year_scaled": { "data_key": "EPS Growth This Year", "type": "scaled", "min_value": 0.10, "max_value": 1.00, "target_min": 0, "target_max": 20 },
+      "short_interest_scaled": { "data_key": "Short Interest", "type": "scaled", "min_value": 15, "max_value": 50, "target_min": 0, "target_max": 15 },
+      "debt_equity_scaled": { "data_key": "Total Debt/Equity", "type": "scaled", "min_value": 0, "max_value": 0.8, "target_min": 12, "target_max": 0 },
+      "current_ratio_scaled": { "data_key": "Current Ratio", "type": "scaled", "min_value": 1.0, "max_value": 3.0, "target_min": 0, "target_max": 8 }
+    }
+  },
+  "4. Dividend Value": {
+    "description": "Filosofi: Fokuserer på selskaber, der udbetaler et højt, bæredygtigt udbytte og har lav finansiel risiko.",
+    "min_score": 75,
+    "pre_filters": {
+      "dividend_yield_filter": { "data_key": "Dividend Yield", "type": "binary", "operator": "gt", "value": 0.03 },
+      "payout_ratio_filter": { "data_key": "Payout Ratio", "type": "binary", "operator": "lt", "value": 0.6 }
+    },
+    "filters": {
+      "dividend_yield_scaled": { "data_key": "Dividend Yield", "type": "scaled", "min_value": 0.04, "max_value": 0.08, "target_min": 0, "target_max": 30 },
+      "payout_ratio_scaled": { "data_key": "Payout Ratio", "type": "scaled", "min_value": 0.1, "max_value": 0.6, "target_min": 25, "target_max": 0 },
+      "roic_scaled": { "data_key": "Return on Invested Capital", "type": "scaled", "min_value": 0.12, "max_value": 0.40, "target_min": 0, "target_max": 15 },
+      "debt_equity_scaled": { "data_key": "Total Debt/Equity", "type": "scaled", "min_value": 0, "max_value": 0.3, "target_min": 15, "target_max": 0 },
+      "eps_5y_scaled": { "data_key": "EPS Growth Past 5 Years", "type": "scaled", "min_value": 0.03, "max_value": 0.20, "target_min": 0, "target_max": 10 },
+      "beta_scaled": { "data_key": "Beta", "type": "scaled", "min_value": 0.2, "max_value": 0.8, "target_min": 5, "target_max": 0 }
+    }
+  },
+  "5. GARP (Growth at a Reasonable Price)": {
+    "description": "Filosofi: Finder vækstselskaber af høj kvalitet, men kun når de handles til en fornuftig pris. En hybrid mellem vækst- og værdiinvestering.",
+    "min_score": 80,
+    "pre_filters": {
+      "peg_filter": { "data_key": "PEG", "type": "binary", "operator": "lt", "value": 1.5 },
+      "eps_next_5y_filter": { "data_key": "EPS Growth Next 5 Years", "type": "binary", "operator": "gt", "value": 0.10 }
+    },
+    "filters": {
+      "peg_scaled": { "data_key": "PEG", "type": "scaled", "min_value": 0.5, "max_value": 1.2, "target_min": 30, "target_max": 0 },
+      "eps_next_5y_scaled": { "data_key": "EPS Growth Next 5 Years", "type": "scaled", "min_value": 0.10, "max_value": 0.40, "target_min": 0, "target_max": 25 },
+      "roic_scaled": { "data_key": "Return on Invested Capital", "type": "scaled", "min_value": 0.15, "max_value": 0.50, "target_min": 0, "target_max": 20 },
+      "forward_pe_scaled": { "data_key": "Forward P/E", "type": "scaled", "min_value": 10, "max_value": 25, "target_min": 15, "target_max": 0 },
+      "profit_margin_scaled": { "data_key": "Profit Margin", "type": "scaled", "min_value": 0.10, "max_value": 0.30, "target_min": 0, "target_max": 10 }
+    }
+  },
+  "6. Contrarian / Special Situations": {
+    "description": "Filosofi: Satser imod markedet ved at finde selskaber, der er ekstremt upopulære, men hvor der er tegn på asymmetrisk potentiale.",
+    "min_score": 65,
+    "pre_filters": {
+      "short_interest_filter": { "data_key": "Short Interest", "type": "binary", "operator": "gt", "value": 20 }
+    },
+    "filters": {
+      "short_interest_scaled": { "data_key": "Short Interest", "type": "scaled", "min_value": 25, "max_value": 60, "target_min": 0, "target_max": 25 },
+      "insider_trans_scaled": { "data_key": "Insider Transactions", "type": "scaled", "min_value": 0.10, "max_value": 0.75, "target_min": 0, "target_max": 25 },
+      "pb_scaled": { "data_key": "P/B", "type": "scaled", "min_value": 0.2, "max_value": 0.8, "target_min": 20, "target_max": 0 },
+      "ev_ebitda_scaled": { "data_key": "EV/EBITDA", "type": "scaled", "min_value": 1, "max_value": 5, "target_min": 15, "target_max": 0 },
+      "perf_year_scaled": { "data_key": "Performance (Year)", "type": "scaled", "min_value": -0.90, "max_value": -0.50, "target_min": 10, "target_max": 0 },
+      "analyst_recom_scaled": { "data_key": "Analyst Recom", "type": "scaled", "min_value": 3, "max_value": 5, "target_min": 0, "target_max": 5 }
+    }
+  },
+  "7. Asset Value (Net-Net / Liquidation)": {
+    "description": "Filosofi: Den reneste form for value. Finder selskaber, hvis markedsværdi er lavere end deres likviderbare aktiver minus al gæld.",
+    "min_score": 70,
+    "pre_filters": {
+      "pb_filter": { "data_key": "P/B", "type": "binary", "operator": "lt", "value": 0.7 },
+      "debt_filter": { "data_key": "Total Debt/Equity", "type": "binary", "operator": "lt", "value": 0.2 }
+    },
+    "filters": {
+      "pb_scaled": { "data_key": "P/B", "type": "scaled", "min_value": 0.1, "max_value": 0.66, "target_min": 30, "target_max": 0 },
+      "price_vs_book_scaled": { "data_key": "Price vs. Book/sh", "type": "scaled", "description": "Pris i forhold til bogført værdi pr. aktie.", "min_value": 0.1, "max_value": 0.66, "target_min": 20, "target_max": 0 },
+      "current_ratio_scaled": { "data_key": "Current Ratio", "type": "scaled", "min_value": 2.0, "max_value": 7.0, "target_min": 0, "target_max": 20 },
+      "debt_equity_scaled": { "data_key": "Total Debt/Equity", "type": "scaled", "min_value": 0, "max_value": 0.2, "target_min": 20, "target_max": 0 },
+      "cash_sh_scaled": { "data_key": "Cash/sh", "type": "scaled", "min_value": 0, "max_value": 20, "target_min": 0, "target_max": 10 }
+    }
+  }
+}

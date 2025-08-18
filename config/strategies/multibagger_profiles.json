@@ -1,61 +1,223 @@
 {
-  "Stram": {
-    "description": "Konservativ profil med høje kvalitetskrav",
-    "min_score": 80,
-    "filters": {
-      "market_cap_small": {
-        "data_key": "MarketCap",
+  "Kvalitet & Værdi": {
+    "description": "At finde robuste, undervurderede virksomheder med stærke 'voldgrave' (moats), bevist profitabilitet og lav finansiel risiko.",
+    "min_score": 75,
+    "pre_filters": {
+      "market_cap_filter": {
+        "data_key": "Market Cap",
+        "type": "binary",
         "operator": "between",
-        "value": [300000000, 2000000000],
-        "weight": 2
+        "value": [300000000, 5000000000]
+      }
+      
+    },
+    "filters": {
+      "peg_scaled": {
+        "data_key": "PEG",
+        "type": "scaled",
+        "description": "Lavere PEG er bedre (værdi).",
+        "min_value": 0,
+        "max_value": 3,
+        "target_min": 25,
+        "target_max": 0,
+        "weight": 25
       },
-      "positive_eps": {
-        "data_key": "EPS",
-        "operator": "gt",
-        "value": 0,
-        "weight": 2
+      "roic_range": {
+        "data_key": "Return on Invested Capital",
+        "type": "range",
+        "description": "Højere ROIC er bedre (kvalitet).",
+        "ranges": [
+          {"min": 0.25, "max": null, "points": 20},
+          {"min": 0.20, "max": 0.25, "points": 16},
+          {"min": 0.15, "max": 0.20, "points": 12},
+          {"min": 0.10, "max": 0.15, "points": 6},
+          {"min": null, "max": 0.10, "points": 0}
+        ]
       },
-      "low_pe": {
-        "data_key": "PERatio",
-        "operator": "lt",
-        "value": 25,
-        "weight": 1
+      "debt_equity_scaled": {
+        "data_key": "Total Debt/Equity",
+        "type": "scaled",
+        "description": "Lavere gæld er bedre (lav risiko).",
+        "min_value": 0,
+        "max_value": 1.5,
+        "target_min": 20,
+        "target_max": 0,
+        "weight": 20
+      },
+      "p_fcf_scaled": {
+        "data_key": "P/Free Cash Flow",
+        "type": "scaled",
+        "description": "Lavere P/FCF er bedre (værdi/reel vækst).",
+        "min_value": 0,
+        "max_value": 50,
+        "target_min": 15,
+        "target_max": 0,
+        "weight": 15
+      },
+      "op_margin_range": {
+        "data_key": "Operating Margin",
+        "type": "range",
+        "description": "Højere margin er bedre (prissætningskraft).",
+        "ranges": [
+          {"min": 0.30, "max": null, "points": 10},
+          {"min": 0.20, "max": 0.30, "points": 8},
+          {"min": 0.15, "max": 0.20, "points": 6},
+          {"min": 0.10, "max": 0.15, "points": 3},
+          {"min": null, "max": 0.10, "points": 0}
+        ]
+      },
+      "insider_own_range": {
+        "data_key": "Insider Ownership",
+        "type": "range",
+        "description": "Højere insider-ejerskab er bedre (aligneret ledelse).",
+        "ranges": [
+          {"min": 0.20, "max": null, "points": 10},
+          {"min": 0.10, "max": 0.20, "points": 7},
+          {"min": 0.05, "max": 0.10, "points": 4},
+          {"min": 0.01, "max": 0.05, "points": 1},
+          {"min": null, "max": 0.01, "points": 0}
+        ]
       }
     }
   },
-  "Løs": {
-    "description": "Mere fleksible kriterier for bredere søgning",
+  "Høj Vækst": {
+    "description": "At finde morgendagens markedsledere i deres tidlige vækstfase. Accepterer højere risiko og værdiansættelse i jagten på eksplosiv omsætningsvækst.",
     "min_score": 60,
-    "filters": {
-      "market_cap_small_mid": {
-        "data_key": "MarketCap",
+    "pre_filters": {
+      "market_cap_filter": {
+        "data_key": "Market Cap",
+        "type": "binary",
         "operator": "between",
-        "value": [300000000, 10000000000],
-        "weight": 2
+        "value": [300000000, 5000000000]
+      }
+    },
+    "filters": {
+      "sales_growth_qoq_range": {
+        "data_key": "Sales Growth Quarter Over Quarter",
+        "type": "range",
+        "description": "Højere kvartalsvækst er bedre (accelererende vækst).",
+        "ranges": [
+          {"min": 0.50, "max": null, "points": 30},
+          {"min": 0.35, "max": 0.50, "points": 25},
+          {"min": 0.25, "max": 0.35, "points": 20},
+          {"min": 0.15, "max": 0.25, "points": 10},
+          {"min": null, "max": 0.15, "points": 0}
+        ]
       },
-      "eps_not_negative": {
-        "data_key": "EPS",
-        "operator": "gte",
-        "value": 0,
-        "weight": 1
+      "eps_growth_next_5y_scaled": {
+        "data_key": "EPS Growth Next 5 Years",
+        "type": "scaled",
+        "description": "Højere fremtidig EPS-vækst er bedre.",
+        "min_value": 0,
+        "max_value": 0.50,
+        "target_min": 0,
+        "target_max": 25,
+        "weight": 25
+      },
+      "p_s_scaled": {
+        "data_key": "P/S",
+        "type": "scaled",
+        "description": "Lavere P/S er bedre (værdi for vækstselskaber).",
+        "min_value": 0,
+        "max_value": 20,
+        "target_min": 20,
+        "target_max": 0,
+        "weight": 20
+      },
+      "peg_scaled_loose": {
+        "data_key": "PEG",
+        "type": "scaled",
+        "description": "Lavere PEG er bedre, men højere tolerance.",
+        "min_value": 0,
+        "max_value": 5,
+        "target_min": 10,
+        "target_max": 0,
+        "weight": 10
+      },
+      "insider_own_range": {
+        "data_key": "Insider Ownership",
+        "type": "range",
+        "description": "Højere insider-ejerskab er bedre.",
+        "ranges": [
+          {"min": 0.10, "max": null, "points": 15},
+          {"min": 0.05, "max": 0.10, "points": 10},
+          {"min": 0.01, "max": 0.05, "points": 5},
+          {"min": null, "max": 0.01, "points": 0}
+        ]
       }
     }
   },
-  "Momentum": {
-    "description": "Fokus på teknisk styrke og vækst",
+  "Trend & Styrke": {
+    "description": "At finde selskaber, der allerede performer stærkt og er anerkendt af markedet. Strategien bygger på, at 'vindere fortsætter med at vinde'.",
     "min_score": 70,
-    "filters": {
-      "market_cap_mid_large": {
-        "data_key": "MarketCap",
+    "pre_filters": {
+      "market_cap_filter": {
+        "data_key": "Market Cap",
+        "type": "binary",
         "operator": "between",
-        "value": [2000000000, 20000000000],
-        "weight": 2
+        "value": [300000000, 5000000000]
+      }
+      
+    },
+    "filters": {
+      "perf_quarter_scaled": {
+        "data_key": "Performance (Quarter)",
+        "type": "scaled",
+        "description": "Højere kvartalsperformance er bedre (momentum).",
+        "min_value": 0,
+        "max_value": 1.0,
+        "target_min": 0,
+        "target_max": 30,
+        "weight": 30
       },
-      "eps_positive": {
-        "data_key": "EPS",
-        "operator": "gt",
-        "value": 0,
-        "weight": 1
+      "rel_volume_range": {
+        "data_key": "Relative Volume",
+        "type": "range",
+        "description": "Højere relativt volumen er bedre (interesse).",
+        "ranges": [
+          {"min": 3.0, "max": null, "points": 25},
+          {"min": 2.0, "max": 3.0, "points": 22},
+          {"min": 1.5, "max": 2.0, "points": 18},
+          {"min": 1.0, "max": 1.5, "points": 10},
+          {"min": null, "max": 1.0, "points": 0}
+        ]
+      },
+      "sales_growth_qoq_mom_range": {
+        "data_key": "Sales Growth Quarter Over Quarter",
+        "type": "range",
+        "description": "Fundamental støtte til momentum.",
+        "ranges": [
+          {"min": 0.30, "max": null, "points": 20},
+          {"min": 0.20, "max": 0.30, "points": 15},
+          {"min": 0.10, "max": 0.20, "points": 10},
+          {"min": 0.00, "max": 0.10, "points": 5},
+          {"min": null, "max": 0.00, "points": 0}
+        ]
+      },
+      "rsi_range": {
+        "data_key": "Relative Strength Index (14)",
+        "type": "range",
+        "description": "RSI i stærk trend, ikke overkøbt.",
+        "ranges": [
+          {"min": 60, "max": 80, "points": 15},
+          {"min": 50, "max": 60, "points": 10},
+          {"min": 80, "max": 90, "points": 7},
+          {"min": 40, "max": 50, "points": 5},
+          {"min": 90, "max": null, "points": 0},
+          {"min": null, "max": 40, "points": 0}
+        ]
+      },
+      "eps_growth_past_3y_range": {
+        "data_key": "EPS Growth Past 3 Years",
+        "type": "range",
+        "description": "Historisk bundlinjevækst.",
+        "ranges": [
+          {"min": 0.25, "max": null, "points": 10},
+          {"min": 0.15, "max": 0.25, "points": 7},
+          {"min": 0.05, "max": 0.15, "points": 4},
+          {"min": 0.00, "max": 0.05, "points": 1},
+          {"min": null, "max": 0.00, "points": 0}
+        ]
       }
     }
   }
