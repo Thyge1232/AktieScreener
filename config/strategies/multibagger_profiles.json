@@ -14,7 +14,7 @@
       "peg_scaled": {
         "data_key": "PEG",
         "type": "scaled",
-        "description": "Lavere PEG er bedre (værdi).",
+        "description": "PEG-forholdet (P/E / Vækst). En lav værdi indikerer, at prisen er rimelig i forhold til den forventede vækst.",
         "min_value": 0,
         "max_value": 3,
         "target_min": 25,
@@ -24,7 +24,7 @@
       "roic_range": {
         "data_key": "Return on Invested Capital",
         "type": "range",
-        "description": "Højere ROIC er bedre (kvalitet).",
+        "description": "Høj ROIC viser, at selskabet er effektivt til at generere profit fra sin kapital. Et stærkt tegn på en god forretningsmodel ('moat').",
         "ranges": [
           {"min": 0.25, "max": null, "points": 33},
           {"min": 0.20, "max": 0.25, "points": 28},
@@ -36,7 +36,7 @@
       "debt_equity_scaled": {
         "data_key": "Total Debt/Equity",
         "type": "scaled",
-        "description": "Lavere gæld er bedre (lav risiko).",
+        "description": "En lav gæld i forhold til egenkapitalen indikerer en sund balance og lav finansiel risiko.",
         "min_value": 0,
         "max_value": 1.5,
         "target_min": 20,
@@ -46,7 +46,7 @@
       "p_fcf_scaled": {
         "data_key": "P/Free Cash Flow",
         "type": "scaled",
-        "description": "Lavere P/FCF er bedre (værdi/reel vækst).",
+        "description": "Måler prisen i forhold til de reelle, frie pengestrømme. Ofte et mere pålideligt mål end P/E. Lavere er billigere.",
         "min_value": 0,
         "max_value": 50,
         "target_min": 15,
@@ -56,7 +56,7 @@
       "op_margin_range": {
         "data_key": "Operating Margin",
         "type": "range",
-        "description": "Højere margin er bedre (prissætningskraft).",
+        "description": "Driftsmarginen viser, hvor meget selskabet tjener pr. omsætningskrone. En høj margin indikerer stærk prissætningskraft.",
         "ranges": [
           {"min": 0.25, "max": null, "points": 7},
           {"min": 0.18, "max": 0.25, "points": 5},
@@ -68,7 +68,7 @@
       "insider_own_range": {
         "data_key": "Insider Ownership",
         "type": "range",
-        "description": "Højere insider-ejerskab er bedre (aligneret ledelse).",
+        "description": "En høj ejerandel blandt ledelsen ('insiders') sikrer, at deres interesser er på linje med de øvrige aktionærers.",
         "ranges": [
           {"min": 0.20, "max": null, "points": 10},
           {"min": 0.10, "max": 0.20, "points": 7},
@@ -94,7 +94,7 @@
       "sales_growth_qoq_range": {
         "data_key": "Sales Growth Quarter Over Quarter",
         "type": "range",
-        "description": "Højere kvartalsvækst er bedre (accelererende vækst).",
+        "description": "En høj vækst i omsætning fra et kvartal til det næste er et stærkt tegn på accelererende momentum.",
         "ranges": [
           {"min": 0.40, "max": null, "points": 25},
           {"min": 0.30, "max": 0.40, "points": 20},
@@ -106,7 +106,7 @@
       "eps_growth_next_5y_scaled": {
         "data_key": "EPS Growth Next 5 Years",
         "type": "scaled",
-        "description": "Højere fremtidig EPS-vækst er bedre.",
+        "description": "Analytikernes forventninger til den fremtidige vækst i indtjening pr. aktie. Kernen i en vækst-case.",
         "min_value": 0,
         "max_value": 0.50,
         "target_min": 0,
@@ -116,7 +116,7 @@
       "p_s_scaled": {
         "data_key": "P/S",
         "type": "scaled",
-        "description": "Lavere P/S er bedre (værdi for vækstselskaber).",
+        "description": "Price/Sales. Et nyttigt værdiansættelsesmål for vækstselskaber, der endnu ikke er profitable. Lavere er billigere.",
         "min_value": 0,
         "max_value": 25,
         "target_min": 20,
@@ -126,7 +126,7 @@
       "peg_scaled_loose": {
         "data_key": "PEG",
         "type": "scaled",
-        "description": "Lavere PEG er bedre, men højere tolerance.",
+        "description": "PEG-forholdet (P/E / Vækst). For vækstselskaber accepteres en højere PEG-værdi end for traditionelle value-selskaber.",
         "min_value": 0,
         "max_value": 5,
         "target_min": 10,
@@ -136,7 +136,7 @@
       "insider_own_range": {
         "data_key": "Insider Ownership",
         "type": "range",
-        "description": "Højere insider-ejerskab er bedre.",
+        "description": "Høj ejerandel blandt ledelsen er især vigtigt i unge vækstselskaber, da det viser tro på projektet.",
         "ranges": [
           {"min": 0.10, "max": null, "points": 20},
           {"min": 0.05, "max": 0.10, "points": 12},
@@ -161,7 +161,7 @@
       "perf_quarter_scaled": {
         "data_key": "Performance (Quarter)",
         "type": "scaled",
-        "description": "Højere kvartalsperformance er bedre (momentum).",
+        "description": "Aktiens procentvise afkast over det seneste kvartal. Et direkte mål for kortsigtet kursmomentum.",
         "min_value": 0,
         "max_value": 1.0,
         "target_min": 0,
@@ -171,7 +171,7 @@
       "rel_volume_range": {
         "data_key": "Relative Volume",
         "type": "range",
-        "description": "Højere relativt volumen er bedre (interesse).",
+        "description": "Den nuværende handelsvolumen i forhold til gennemsnittet. Høj relativ volumen signalerer øget interesse fra markedet.",
         "ranges": [
           {"min": 3.0, "max": null, "points": 20},
           {"min": 2.0, "max": 3.0, "points": 18},
@@ -183,7 +183,7 @@
       "sales_growth_qoq_mom_range": {
         "data_key": "Sales Growth Quarter Over Quarter",
         "type": "range",
-        "description": "Fundamental støtte til momentum.",
+        "description": "Stærk fundamental vækst i omsætningen, der kan understøtte og retfærdiggøre den positive kurstrend.",
         "ranges": [
           {"min": 0.30, "max": null, "points": 25},
           {"min": 0.20, "max": 0.30, "points": 20},
@@ -195,7 +195,7 @@
       "rsi_range": {
         "data_key": "Relative Strength Index (14)",
         "type": "range",
-        "description": "RSI i stærk trend, ikke overkøbt.",
+        "description": "Et teknisk momentum-indikator. Værdier over 50 indikerer en opadgående trend, men meget høje værdier (>80) kan signalere 'overkøbt'.",
         "ranges": [
           {"min": 60, "max": 80, "points": 15},
           {"min": 50, "max": 60, "points": 10},
@@ -208,7 +208,7 @@
       "eps_growth_past_3y_range": {
         "data_key": "EPS Growth Past 3 Years",
         "type": "range",
-        "description": "Historisk bundlinjevækst.",
+        "description": "Stærk og konsistent historisk vækst i indtjeningen viser, at selskabet har en historik for at levere resultater.",
         "ranges": [
           {"min": 0.25, "max": null, "points": 15},
           {"min": 0.15, "max": 0.25, "points": 10},

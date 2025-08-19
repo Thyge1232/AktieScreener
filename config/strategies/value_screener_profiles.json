@@ -8,6 +8,7 @@
     "filters": {
       "roic_hybrid": {
         "data_key": "Return on Invested Capital", "type": "hybrid_range_scaled",
+        "description": "Måler hvor effektivt et selskab bruger sin kapital. Højere ROIC ift. sektoren er et stærkt kvalitetstegn.",
         "normalization": "sector_median_relative",
         "ranges": [
           {"min": 1.5, "max": 2.5, "base_points": 25, "scaled_points": 5},
@@ -17,6 +18,7 @@
       },
       "profit_margin_hybrid": {
         "data_key": "Profit Margin", "type": "hybrid_range_scaled",
+        "description": "Viser hvor stor en procentdel af omsætningen, der bliver til ren profit. Højere end sektoren er et tegn på prissætningskraft.",
         "normalization": "sector_median_relative",
         "ranges": [
           {"min": 1.5, "max": 2.5, "base_points": 12, "scaled_points": 3},
@@ -26,6 +28,7 @@
       },
       "debt_equity_range": {
         "data_key": "Total Debt/Equity", "type": "range",
+        "description": "Sammenligner selskabets gæld med egenkapitalen. Lavere end sektoren indikerer lavere finansiel risiko.",
         "normalization": "sector_median_relative_inverse",
         "ranges": [
           {"min": null, "max": 0.5, "points": 15},
@@ -34,9 +37,21 @@
           {"min": 1.0, "max": null, "points": 0}
         ]
       },
-      "p_fcf_scaled": { "data_key": "P/Free Cash Flow", "type": "scaled", "min_value": 5, "max_value": 25, "target_min": 20, "target_max": 0 },
-      "eps_5y_scaled": { "data_key": "EPS Growth Past 5 Years", "type": "scaled", "min_value": 0.05, "max_value": 0.25, "target_min": 0, "target_max": 10 },
-      "pe_scaled": { "data_key": "P/E", "type": "scaled", "min_value": 5, "max_value": 25, "target_min": 10, "target_max": 0 }
+      "p_fcf_scaled": { 
+        "data_key": "P/Free Cash Flow", "type": "scaled",
+        "description": "Pris i forhold til reelle pengestrømme. En lav P/FCF kan indikere, at selskabet er undervurderet.",
+        "min_value": 5, "max_value": 25, "target_min": 20, "target_max": 0 
+      },
+      "eps_5y_scaled": { 
+        "data_key": "EPS Growth Past 5 Years", "type": "scaled",
+        "description": "Den gennemsnitlige årlige vækst i indtjening pr. aktie over de sidste 5 år. Viser historisk stabilitet og vækst.",
+        "min_value": 0.05, "max_value": 0.25, "target_min": 0, "target_max": 10 
+      },
+      "pe_scaled": { 
+        "data_key": "P/E", "type": "scaled",
+        "description": "Klassisk værdiansættelsesmål (Pris/Indtjening). Lavere er generelt billigere.",
+        "min_value": 5, "max_value": 25, "target_min": 10, "target_max": 0 
+      }
     }
   },
   "2. Deep Value": {
@@ -47,9 +62,14 @@
       "pb_pre_filter": { "data_key": "P/B", "type": "binary", "operator": "lt", "value": 1.0 }
     },
     "filters": {
-      "pb_scaled": { "data_key": "P/B", "type": "scaled", "min_value": 0.2, "max_value": 0.7, "target_min": 25, "target_max": 0 },
+      "pb_scaled": { 
+        "data_key": "P/B", "type": "scaled", 
+        "description": "Price/Book. Måler prisen i forhold til selskabets bogførte egenkapital. Under 1 er en kerneindikator for 'deep value'.",
+        "min_value": 0.2, "max_value": 0.7, "target_min": 25, "target_max": 0 
+      },
       "current_ratio_range": {
         "data_key": "Current Ratio", "type": "range",
+        "description": "Måler et selskabs evne til at betale kortsigtede forpligtelser. Højere end sektoren er et tegn på finansiel sundhed.",
         "normalization": "sector_median_relative",
         "ranges": [
           {"min": 1.5, "max": null, "points": 25},
@@ -60,6 +80,7 @@
       },
       "debt_equity_range": {
         "data_key": "Total Debt/Equity", "type": "range",
+        "description": "Sammenligner selskabets gæld med egenkapitalen. Lav gæld er afgørende for at undgå konkurs i 'deep value' selskaber.",
         "normalization": "sector_median_relative_inverse",
         "ranges": [
           {"min": null, "max": 0.5, "points": 20},
@@ -68,8 +89,16 @@
           {"min": 1.0, "max": null, "points": 0}
         ]
       },
-      "ev_ebitda_scaled": { "data_key": "EV/EBITDA", "type": "scaled", "min_value": 1, "max_value": 6, "target_min": 20, "target_max": 0 },
-      "cash_sh_scaled": { "data_key": "Cash/sh", "type": "scaled", "min_value": 0, "max_value": 20, "target_min": 0, "target_max": 10 }
+      "ev_ebitda_scaled": { 
+        "data_key": "EV/EBITDA", "type": "scaled",
+        "description": "Enterprise Value / EBITDA. Et værdiansættelsesmål, der tager højde for gæld. Ekstremt lave værdier er attraktive.",
+        "min_value": 1, "max_value": 6, "target_min": 20, "target_max": 0 
+      },
+      "cash_sh_scaled": { 
+        "data_key": "Cash/sh", "type": "scaled",
+        "description": "Kontanter pr. aktie. En høj andel af kontanter i forhold til aktiekursen giver en sikkerhedsmargin.",
+        "min_value": 0, "max_value": 20, "target_min": 0, "target_max": 10 
+      }
     }
   },
   "3. Turnaround": {
@@ -80,9 +109,14 @@
       "perf_year_filter": { "data_key": "Performance (Year)", "type": "binary", "operator": "lt", "value": -0.20 }
     },
     "filters": {
-      "sales_growth_qoq_scaled": { "data_key": "Sales Growth Quarter Over Quarter", "type": "scaled", "min_value": 0.05, "max_value": 0.30, "target_min": 0, "target_max": 30 },
+      "sales_growth_qoq_scaled": { 
+        "data_key": "Sales Growth Quarter Over Quarter", "type": "scaled", 
+        "description": "Positiv omsætningsvækst kvartal-over-kvartal kan være det første tegn på, at en turnaround er i gang.",
+        "min_value": 0.05, "max_value": 0.30, "target_min": 0, "target_max": 30 
+      },
       "insider_trans_range": {
         "data_key": "Insider Transactions", "type": "range",
+        "description": "Høj insider-købsaktivitet (høj percentil) signalerer, at ledelsen tror på en positiv fremtid trods dårlig performance.",
         "boundary_type": "percentile",
         "ranges": [
           {"min": 95, "max": null, "points": 20},
@@ -91,9 +125,14 @@
           {"min": null, "max": 60, "points": 0}
         ]
       },
-      "eps_this_year_scaled": { "data_key": "EPS Growth This Year", "type": "scaled", "min_value": 0.10, "max_value": 1.00, "target_min": 0, "target_max": 20 },
+      "eps_this_year_scaled": { 
+        "data_key": "EPS Growth This Year", "type": "scaled",
+        "description": "Stærk forventet vækst i indtjening for indeværende år kan indikere, at analytikere forventer et vendepunkt.",
+        "min_value": 0.10, "max_value": 1.00, "target_min": 0, "target_max": 20 
+      },
       "short_interest_range": {
         "data_key": "Short Interest", "type": "range",
+        "description": "Høj short interest (høj percentil) viser, at markedet er pessimistisk, hvilket giver potentiale for et 'short squeeze'.",
         "boundary_type": "percentile",
         "ranges": [
           {"min": 95, "max": null, "points": 10},
@@ -104,6 +143,7 @@
       },
       "debt_equity_range": {
         "data_key": "Total Debt/Equity", "type": "range",
+        "description": "Gælden skal være håndterbar, selv for et turnaround-selskab, for at undgå konkurs.",
         "normalization": "sector_median_relative_inverse",
         "ranges": [
           {"min": null, "max": 0.8, "points": 12},
@@ -112,7 +152,11 @@
           {"min": 1.2, "max": null, "points": 0}
         ]
       },
-      "current_ratio_scaled": { "data_key": "Current Ratio", "type": "scaled", "min_value": 1.0, "max_value": 3.0, "target_min": 0, "target_max": 8 }
+      "current_ratio_scaled": { 
+        "data_key": "Current Ratio", "type": "scaled",
+        "description": "En sund likviditet (Current Ratio > 1) er afgørende for at overleve en turnaround-periode.",
+        "min_value": 1.0, "max_value": 3.0, "target_min": 0, "target_max": 8 
+      }
     }
   },
   "4. Dividend Value": {
@@ -124,6 +168,7 @@
     "filters": {
       "dividend_yield_range": {
         "data_key": "Dividend Yield", "type": "range",
+        "description": "Udbytteprocenten. En højere procentsats ift. sektoren er attraktiv, så længe den er bæredygtig.",
         "normalization": "sector_median_relative",
         "ranges": [
           {"min": 2.0, "max": null, "points": 25},
@@ -132,11 +177,31 @@
           {"min": null, "max": 1.2, "points": 0}
         ]
       },
-      "payout_ratio_scaled": { "data_key": "Payout Ratio", "type": "scaled", "normalization": "sector_median_relative_inverse", "min_value": 0.5, "max_value": 1.0, "target_min": 25, "target_max": 0 },
-      "roic_scaled": { "data_key": "Return on Invested Capital", "type": "scaled", "normalization": "sector_median_relative", "min_value": 1.0, "max_value": 2.0, "target_min": 0, "target_max": 20 },
-      "debt_equity_range": { "data_key": "Total Debt/Equity", "type": "range", "normalization": "sector_median_relative_inverse", "ranges": [{"min": null, "max": 0.5, "points": 15}, {"min": 0.5, "max": 1.0, "points": 8}] },
-      "eps_5y_scaled": { "data_key": "EPS Growth Past 5 Years", "type": "scaled", "min_value": 0.03, "max_value": 0.20, "target_min": 0, "target_max": 10 },
-      "beta_scaled": { "data_key": "Beta", "type": "scaled", "min_value": 0.2, "max_value": 0.8, "target_min": 5, "target_max": 0 }
+      "payout_ratio_scaled": { 
+        "data_key": "Payout Ratio", "type": "scaled",
+        "description": "Den procentdel af indtjeningen, der udbetales som udbytte. En lav ratio (ift. sektoren) indikerer, at udbyttet er sikkert.",
+        "normalization": "sector_median_relative_inverse", "min_value": 0.5, "max_value": 1.0, "target_min": 25, "target_max": 0 
+      },
+      "roic_scaled": { 
+        "data_key": "Return on Invested Capital", "type": "scaled",
+        "description": "Et højt afkast på investeret kapital (ift. sektoren) viser, at selskabet er profitabelt nok til at understøtte udbyttet.",
+        "normalization": "sector_median_relative", "min_value": 1.0, "max_value": 2.0, "target_min": 0, "target_max": 20 
+      },
+      "debt_equity_range": { 
+        "data_key": "Total Debt/Equity", "type": "range",
+        "description": "Lav gæld (ift. sektoren) er afgørende for, at selskabet kan fortsætte med at betale udbytte, selv i nedgangstider.",
+        "normalization": "sector_median_relative_inverse", "ranges": [{"min": null, "max": 0.5, "points": 15}, {"min": 0.5, "max": 1.0, "points": 8}] 
+      },
+      "eps_5y_scaled": { 
+        "data_key": "EPS Growth Past 5 Years", "type": "scaled",
+        "description": "Stabil historisk indtjeningsvækst understøtter fremtidige udbyttebetalinger.",
+        "min_value": 0.03, "max_value": 0.20, "target_min": 0, "target_max": 10 
+      },
+      "beta_scaled": { 
+        "data_key": "Beta", "type": "scaled",
+        "description": "En lav Beta-værdi (< 1) indikerer, at aktien er mindre volatil end markedet, hvilket er ønskeligt for mange udbytteinvestorer.",
+        "min_value": 0.2, "max_value": 0.8, "target_min": 5, "target_max": 0 
+      }
     }
   },
   "5. GARP (Growth at a Reasonable Price)": {
@@ -147,11 +212,31 @@
       "peg_filter": { "data_key": "PEG", "type": "binary", "operator": "lt", "value": 1.5 }
     },
     "filters": {
-      "peg_scaled": { "data_key": "PEG", "type": "scaled", "min_value": 0.5, "max_value": 1.2, "target_min": 25, "target_max": 0 },
-      "eps_next_5y_scaled": { "data_key": "EPS Growth Next 5 Years", "type": "scaled", "min_value": 0.10, "max_value": 0.40, "target_min": 0, "target_max": 25 },
-      "roic_hybrid": { "data_key": "Return on Invested Capital", "type": "hybrid_range_scaled", "normalization": "sector_median_relative", "ranges": [{"min": 1.2, "max": 2.0, "base_points": 15, "scaled_points": 5}, {"min": 1.0, "max": 1.2, "base_points": 8, "scaled_points": 7}] },
-      "forward_pe_scaled": { "data_key": "Forward P/E", "type": "scaled", "min_value": 10, "max_value": 25, "target_min": 15, "target_max": 0 },
-      "profit_margin_range": { "data_key": "Profit Margin", "type": "range", "normalization": "sector_median_relative", "ranges": [{"min": 1.2, "max": null, "points": 15}, {"min": 1.0, "max": 1.2, "points": 8}] }
+      "peg_scaled": { 
+        "data_key": "PEG", "type": "scaled",
+        "description": "P/E-forholdet divideret med vækstraten. Under 1.0 betragtes ofte som attraktivt for GARP-strategier.",
+        "min_value": 0.5, "max_value": 1.2, "target_min": 25, "target_max": 0 
+      },
+      "eps_next_5y_scaled": { 
+        "data_key": "EPS Growth Next 5 Years", "type": "scaled",
+        "description": "Forventet fremtidig indtjeningsvækst er den centrale 'vækst'-komponent i GARP.",
+        "min_value": 0.10, "max_value": 0.40, "target_min": 0, "target_max": 25 
+      },
+      "roic_hybrid": { 
+        "data_key": "Return on Invested Capital", "type": "hybrid_range_scaled",
+        "description": "Høj ROIC (ift. sektoren) sikrer, at væksten er profitabel og af høj kvalitet.",
+        "normalization": "sector_median_relative", "ranges": [{"min": 1.2, "max": 2.0, "base_points": 15, "scaled_points": 5}, {"min": 1.0, "max": 1.2, "base_points": 8, "scaled_points": 7}] 
+      },
+      "forward_pe_scaled": { 
+        "data_key": "Forward P/E", "type": "scaled",
+        "description": "P/E baseret på forventet fremtidig indtjening. En rimelig Forward P/E er 'priskomponenten' i GARP.",
+        "min_value": 10, "max_value": 25, "target_min": 15, "target_max": 0 
+      },
+      "profit_margin_range": { 
+        "data_key": "Profit Margin", "type": "range",
+        "description": "En høj profitmargin (ift. sektoren) er endnu en indikator for et kvalitetsselskab.",
+        "normalization": "sector_median_relative", "ranges": [{"min": 1.2, "max": null, "points": 15}, {"min": 1.0, "max": 1.2, "points": 8}] 
+      }
     }
   },
   "6. Contrarian / Special Situations": {
@@ -168,14 +253,19 @@
     },
     "filters": {
       "short_interest_range": {
-        "data_key": "Short Interest", "type": "range", "boundary_type": "percentile", "ranges": [{"min": 98, "max": null, "points": 20}, {"min": 90, "max": 98, "points": 15}, {"min": 80, "max": 90, "points": 10}]
+        "data_key": "Short Interest", "type": "range",
+        "description": "En ekstremt høj short-andel (top percentil) er kernen i denne strategi, da det viser, at markedet er meget negativt.",
+        "boundary_type": "percentile", "ranges": [{"min": 98, "max": null, "points": 20}, {"min": 90, "max": 98, "points": 15}, {"min": 80, "max": 90, "points": 10}]
       },
       "insider_trans_range": {
-        "data_key": "Insider Transactions", "type": "range", "boundary_type": "percentile", "ranges": [{"min": 95, "max": null, "points": 20}, {"min": 85, "max": 95, "points": 15}]
+        "data_key": "Insider Transactions", "type": "range",
+        "description": "Stærke insiderkøb (top percentil) fungerer som et modsignal til den høje short-andel.",
+        "boundary_type": "percentile", "ranges": [{"min": 95, "max": null, "points": 20}, {"min": 85, "max": 95, "points": 15}]
       },
       "pb_scaled": { 
         "data_key": "P/B", 
         "type": "scaled", 
+        "description": "En lav Price/Book kan give en sikkerhedsmargin, hvis turnaround-scenariet fejler.",
         "min_value": 0.2, 
         "max_value": 3.5, 
         "target_min": 25, 
@@ -184,6 +274,7 @@
       "ev_ebitda_scaled": { 
         "data_key": "EV/EBITDA", 
         "type": "scaled", 
+        "description": "En lav EV/EBITDA viser, at selskabet er billigt prissat på et operationelt niveau.",
         "min_value": 1, 
         "max_value": 15, 
         "target_min": 20, 
@@ -192,12 +283,18 @@
       "perf_year_scaled": { 
         "data_key": "Performance (Year)", 
         "type": "scaled", 
+        "description": "Søger efter selskaber, der har underpræsteret markant, da dette ofte er her, contrarian-muligheder opstår.",
         "min_value": -0.90, 
         "max_value": -0.30, 
         "target_min": 10, 
         "target_max": 0 
       },
-      "analyst_recom_scaled": { "data_key": "Analyst Recom", "type": "scaled", "min_value": 3, "max_value": 5, "target_min": 0, "target_max": 5 }
+      "analyst_recom_scaled": { 
+        "data_key": "Analyst Recom", 
+        "type": "scaled",
+        "description": "En 'Hold' eller 'Sell' anbefaling (højere tal) er et tegn på, at analytikerkorpset er negativt, hvilket passer til contrarian-tesen.",
+        "min_value": 3, "max_value": 5, "target_min": 0, "target_max": 5 
+      }
     }
   },
   "7. Asset Value (Net-Net / Liquidation)": {
@@ -208,15 +305,31 @@
       "pb_filter": { "data_key": "P/B", "type": "binary", "operator": "lt", "value": 0.7 }
     },
     "filters": {
-      "pb_scaled": { "data_key": "P/B", "type": "scaled", "min_value": 0.1, "max_value": 0.66, "target_min": 25, "target_max": 0 },
-      "price_vs_book_scaled": { "data_key": "Price vs. Book/sh", "type": "scaled", "min_value": 0.1, "max_value": 0.66, "target_min": 15, "target_max": 0 },
+      "pb_scaled": { 
+        "data_key": "P/B", "type": "scaled", 
+        "description": "Ekstremt lav Price/Book er kernen i at finde selskaber, der handles under deres bogførte værdi.",
+        "min_value": 0.1, "max_value": 0.66, "target_min": 25, "target_max": 0 
+      },
+      "price_vs_book_scaled": { 
+        "data_key": "Price vs. Book/sh", "type": "scaled", 
+        "description": "En mere direkte måling af aktiekursen mod den bogførte værdi pr. aktie. Kernen i 'net-net' investering.",
+        "min_value": 0.1, "max_value": 0.66, "target_min": 15, "target_max": 0 
+      },
       "current_ratio_range": {
-        "data_key": "Current Ratio", "type": "range", "normalization": "sector_median_relative", "ranges": [{"min": 2.0, "max": null, "points": 25}, {"min": 1.5, "max": 2.0, "points": 15}]
+        "data_key": "Current Ratio", "type": "range", 
+        "description": "En meget høj Current Ratio (ift. sektoren) sikrer, at der er rigelige likvide midler til at dække gæld.",
+        "normalization": "sector_median_relative", "ranges": [{"min": 2.0, "max": null, "points": 25}, {"min": 1.5, "max": 2.0, "points": 15}]
       },
       "debt_equity_range": {
-        "data_key": "Total Debt/Equity", "type": "range", "normalization": "sector_median_relative_inverse", "ranges": [{"min": null, "max": 0.2, "points": 25}, {"min": 0.2, "max": 0.5, "points": 15}]
+        "data_key": "Total Debt/Equity", "type": "range", 
+        "description": "Minimal eller ingen gæld er afgørende for, at den bogførte værdi af aktiverne er reel.",
+        "normalization": "sector_median_relative_inverse", "ranges": [{"min": null, "max": 0.2, "points": 25}, {"min": 0.2, "max": 0.5, "points": 15}]
       },
-      "cash_sh_scaled": { "data_key": "Cash/sh", "type": "scaled", "min_value": 0, "max_value": 20, "target_min": 0, "target_max": 10 }
+      "cash_sh_scaled": { 
+        "data_key": "Cash/sh", "type": "scaled",
+        "description": "En stor mængde kontanter pr. aktie giver en stærk 'margin of safety'.",
+        "min_value": 0, "max_value": 20, "target_min": 0, "target_max": 10 
+      }
     }
   }
 }
