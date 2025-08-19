@@ -58,22 +58,27 @@ def evaluate_scaled_filter(row_value, min_value, max_value, target_min, target_m
     points = target_min + ratio * (target_max - target_min)
     return float(points)
 
-# --- Hovedfunktion til screening (Opdateret) ---
+
+# --- Hovedfunktion til Multibagger Screening (Kun grundlæggende logik) ---
 def screen_stocks(df, profile_name, config, selected_regions=None, dynamic_weights=None):
     """
-    Screener aktier baseret på profil, regioner og dynamiske vægte fra UI.
-    Returnerer nu også point-nedbrydning for hver parameter.
+    Screener aktier baseret på Multibagger-profiler, regioner og dynamiske vægte fra UI.
+    Håndterer grundlæggende filtertyper: 'binary', 'range', 'scaled'.
     """
     region_mappings = load_region_mappings()
     profiles = config.get('profiles', {})
-    profile = profiles[profile_name]
-    
+    profile = profiles.get(profile_name)
+
+    if not profile:
+        print(f"[ERROR] Profil '{profile_name}' ikke fundet i konfigurationen.")
+        return pd.DataFrame()
+
     pre_filters = profile.get('pre_filters', {})
     filters = profile.get('filters', {})
     min_score = profile.get('min_score', 0)
-    
+
     df_results = df.copy()
-    print(f"[DEBUG] Starter screening med {len(df_results)} aktier.")
+    print(f"[DEBUG] [Multibagger Screener] Starter screening med {len(df_results)} aktier.")
 
     # 1. Anvend regions-filter
     if selected_regions:
@@ -81,43 +86,44 @@ def screen_stocks(df, profile_name, config, selected_regions=None, dynamic_weigh
         if 'Country' in df_results.columns and countries_to_include:
             countries_lower = {c.lower() for c in countries_to_include}
             df_results = df_results[df_results['Country'].fillna('').str.lower().isin(countries_lower)]
-            print(f"[DEBUG] Efter UI region filter: {len(df_results)} aktier tilbage.")
+            print(f"[DEBUG] [Multibagger Screener] Efter UI region filter: {len(df_results)} aktier tilbage.")
 
     # 2. Anvend pre_filters fra JSON
     for filter_name, pre_filter_details in pre_filters.items():
-        # ... (uændret logik for pre-filters) ...
         data_key = pre_filter_details['data_key']
         series_to_check = df_results.get(data_key)
         if series_to_check is not None:
             condition_met = series_to_check.apply(lambda x: evaluate_condition(x, pre_filter_details['operator'], pre_filter_details['value']))
             df_results = df_results[condition_met]
-            print(f"[DEBUG] Efter pre-filter '{filter_name}': {len(df_results)} aktier tilbage.")
+            print(f"[DEBUG] [Multibagger Screener] Efter pre-filter '{filter_name}': {len(df_results)} aktier tilbage.")
 
     if df_results.empty:
         return pd.DataFrame()
 
     df_results = df_results.reset_index(drop=True)
-    
-    # ✅ NYT: Initialiser score-kolonner til nedbrydning
+
+    # ✅ Initialiser score-kolonner til nedbrydning
     for filter_name in filters.keys():
         df_results[f"points_{filter_name}"] = 0.0
-    
+
     df_results['Score'] = 0.0
-    
+
     # 3. Beregn den maksimale mulige score baseret på DYNAMISKE vægte
     max_possible_score = sum(dynamic_weights.values()) if dynamic_weights else 0
-    print(f"[DEBUG] Maksimal mulig score (dynamisk): {max_possible_score}")
-    if max_possible_score == 0: return df_results
+    print(f"[DEBUG] [Multibagger Screener] Maksimal mulig score (dynamisk): {max_possible_score}")
+    if max_possible_score == 0:
+        return df_results
 
-    # 4. Anvend scorings-filtre
+    # 4. Anvend scorings-filtre (Kun grundlæggende typer)
     for filter_name, filter_details in filters.items():
         data_key = filter_details['data_key']
+        filter_type = filter_details['type'] # Forventer 'binary', 'range', 'scaled'
+
         series_to_check = df_results.get(data_key)
-        
+
         if series_to_check is not None:
             # Beregn de "rå" point (0-1 normaliseret score)
             raw_points = pd.Series([0.0] * len(df_results), index=df_results.index)
-            filter_type = filter_details['type']
 
             if filter_type == 'range':
                 max_val = max((r.get('points', 0) for r in filter_details.get('ranges', [])), default=1)
@@ -126,13 +132,15 @@ def screen_stocks(df, profile_name, config, selected_regions=None, dynamic_weigh
             elif filter_type == 'scaled':
                 max_val = max(filter_details.get('target_min', 0), filter_details.get('target_max', 0))
                 if max_val > 0:
-                    kwargs = {k:v for k,v in filter_details.items() if k in ['min_value', 'max_value', 'target_min', 'target_max']}
+                    kwargs = {k: v for k, v in filter_details.items() if k in ['min_value', 'max_value', 'target_min', 'target_max']}
                     raw_points = series_to_check.apply(lambda x: evaluate_scaled_filter(x, **kwargs) / max_val)
-            
-            # ✅ NYT: Gang de rå point med den DYNAMISKE vægt fra slideren
+            # Bemærk: Ingen håndtering af 'binary' her, da de typisk bruges i pre_filters.
+            # Hvis 'binary' filtre bruges til scoring, skal logik tilføjes her.
+
+            # ✅ Gang de rå point med den DYNAMISKE vægt fra slideren
             current_weight = dynamic_weights.get(filter_name, 0)
             weighted_points = raw_points * current_weight
-            
+
             df_results[f"points_{filter_name}"] = weighted_points
             df_results['Score'] += weighted_points
 
@@ -146,7 +154,7 @@ def screen_stocks(df, profile_name, config, selected_regions=None, dynamic_weigh
     # Tilføj de unikke metrikker for den specifikke profil
     metric_columns = list(set(f['data_key'] for f in filters.values()))
     final_display_columns = display_columns[:6] + metric_columns + display_columns[6:]
-    
+
     existing_columns = [col for col in final_display_columns if col in df_sorted.columns]
-    
+
     return df_sorted[existing_columns + [col for col in df_sorted.columns if col.startswith('points_')]]

@@ -1,7 +1,9 @@
 # config_loader.py
 import json
+import streamlit as st # Tilføj denne import øverst
 import os
 
+@st.cache_resource
 def load_config(config_path=None):
     """Indlæser MULTIBAGGER profil-konfigurationsfilen."""
     if config_path is None:
@@ -21,6 +23,8 @@ def load_config(config_path=None):
 
 # ========================================================================
 # == NY FUNKTION TILFØJES HER ==
+
+@st.cache_resource
 def load_value_config(config_path=None):
     """Indlæser VALUE SCREENER profil-konfigurationsfilen."""
     if config_path is None:
@@ -41,6 +45,7 @@ def load_value_config(config_path=None):
 # ========================================================================
 
 
+@st.cache_resource
 def load_region_mappings(mappings_path=None):
     """Indlæser region-mapping filen."""
     if mappings_path is None:

@@ -9,7 +9,6 @@
         "operator": "between",
         "value": [300000000, 5000000000]
       }
-      
     },
     "filters": {
       "peg_scaled": {
@@ -20,17 +19,17 @@
         "max_value": 3,
         "target_min": 25,
         "target_max": 0,
-        "weight": 25
+        "weight": 20
       },
       "roic_range": {
         "data_key": "Return on Invested Capital",
         "type": "range",
         "description": "Højere ROIC er bedre (kvalitet).",
         "ranges": [
-          {"min": 0.25, "max": null, "points": 20},
-          {"min": 0.20, "max": 0.25, "points": 16},
-          {"min": 0.15, "max": 0.20, "points": 12},
-          {"min": 0.10, "max": 0.15, "points": 6},
+          {"min": 0.25, "max": null, "points": 33},
+          {"min": 0.20, "max": 0.25, "points": 28},
+          {"min": 0.15, "max": 0.20, "points": 22},
+          {"min": 0.10, "max": 0.15, "points": 12},
           {"min": null, "max": 0.10, "points": 0}
         ]
       },
@@ -42,7 +41,7 @@
         "max_value": 1.5,
         "target_min": 20,
         "target_max": 0,
-        "weight": 20
+        "weight": 15
       },
       "p_fcf_scaled": {
         "data_key": "P/Free Cash Flow",
@@ -59,11 +58,11 @@
         "type": "range",
         "description": "Højere margin er bedre (prissætningskraft).",
         "ranges": [
-          {"min": 0.30, "max": null, "points": 10},
-          {"min": 0.20, "max": 0.30, "points": 8},
-          {"min": 0.15, "max": 0.20, "points": 6},
-          {"min": 0.10, "max": 0.15, "points": 3},
-          {"min": null, "max": 0.10, "points": 0}
+          {"min": 0.25, "max": null, "points": 7},
+          {"min": 0.18, "max": 0.25, "points": 5},
+          {"min": 0.12, "max": 0.18, "points": 3},
+          {"min": 0.08, "max": 0.12, "points": 1},
+          {"min": null, "max": 0.08, "points": 0}
         ]
       },
       "insider_own_range": {
@@ -97,10 +96,10 @@
         "type": "range",
         "description": "Højere kvartalsvækst er bedre (accelererende vækst).",
         "ranges": [
-          {"min": 0.50, "max": null, "points": 30},
-          {"min": 0.35, "max": 0.50, "points": 25},
-          {"min": 0.25, "max": 0.35, "points": 20},
-          {"min": 0.15, "max": 0.25, "points": 10},
+          {"min": 0.40, "max": null, "points": 25},
+          {"min": 0.30, "max": 0.40, "points": 20},
+          {"min": 0.20, "max": 0.30, "points": 15},
+          {"min": 0.15, "max": 0.20, "points": 8},
           {"min": null, "max": 0.15, "points": 0}
         ]
       },
@@ -112,17 +111,17 @@
         "max_value": 0.50,
         "target_min": 0,
         "target_max": 25,
-        "weight": 25
+        "weight": 30
       },
       "p_s_scaled": {
         "data_key": "P/S",
         "type": "scaled",
         "description": "Lavere P/S er bedre (værdi for vækstselskaber).",
         "min_value": 0,
-        "max_value": 20,
+        "max_value": 25,
         "target_min": 20,
         "target_max": 0,
-        "weight": 20
+        "weight": 15
       },
       "peg_scaled_loose": {
         "data_key": "PEG",
@@ -139,9 +138,9 @@
         "type": "range",
         "description": "Højere insider-ejerskab er bedre.",
         "ranges": [
-          {"min": 0.10, "max": null, "points": 15},
-          {"min": 0.05, "max": 0.10, "points": 10},
-          {"min": 0.01, "max": 0.05, "points": 5},
+          {"min": 0.10, "max": null, "points": 20},
+          {"min": 0.05, "max": 0.10, "points": 12},
+          {"min": 0.01, "max": 0.05, "points": 6},
           {"min": null, "max": 0.01, "points": 0}
         ]
       }
@@ -157,7 +156,6 @@
         "operator": "between",
         "value": [300000000, 5000000000]
       }
-      
     },
     "filters": {
       "perf_quarter_scaled": {
@@ -168,17 +166,17 @@
         "max_value": 1.0,
         "target_min": 0,
         "target_max": 30,
-        "weight": 30
+        "weight": 25
       },
       "rel_volume_range": {
         "data_key": "Relative Volume",
         "type": "range",
         "description": "Højere relativt volumen er bedre (interesse).",
         "ranges": [
-          {"min": 3.0, "max": null, "points": 25},
-          {"min": 2.0, "max": 3.0, "points": 22},
-          {"min": 1.5, "max": 2.0, "points": 18},
-          {"min": 1.0, "max": 1.5, "points": 10},
+          {"min": 3.0, "max": null, "points": 20},
+          {"min": 2.0, "max": 3.0, "points": 18},
+          {"min": 1.5, "max": 2.0, "points": 15},
+          {"min": 1.0, "max": 1.5, "points": 8},
           {"min": null, "max": 1.0, "points": 0}
         ]
       },
@@ -187,10 +185,10 @@
         "type": "range",
         "description": "Fundamental støtte til momentum.",
         "ranges": [
-          {"min": 0.30, "max": null, "points": 20},
-          {"min": 0.20, "max": 0.30, "points": 15},
-          {"min": 0.10, "max": 0.20, "points": 10},
-          {"min": 0.00, "max": 0.10, "points": 5},
+          {"min": 0.30, "max": null, "points": 25},
+          {"min": 0.20, "max": 0.30, "points": 20},
+          {"min": 0.10, "max": 0.20, "points": 15},
+          {"min": 0.00, "max": 0.10, "points": 7},
           {"min": null, "max": 0.00, "points": 0}
         ]
       },
@@ -201,7 +199,7 @@
         "ranges": [
           {"min": 60, "max": 80, "points": 15},
           {"min": 50, "max": 60, "points": 10},
-          {"min": 80, "max": 90, "points": 7},
+          {"min": 80, "max": 90, "points": 12},
           {"min": 40, "max": 50, "points": 5},
           {"min": 90, "max": null, "points": 0},
           {"min": null, "max": 40, "points": 0}
@@ -212,10 +210,10 @@
         "type": "range",
         "description": "Historisk bundlinjevækst.",
         "ranges": [
-          {"min": 0.25, "max": null, "points": 10},
-          {"min": 0.15, "max": 0.25, "points": 7},
-          {"min": 0.05, "max": 0.15, "points": 4},
-          {"min": 0.00, "max": 0.05, "points": 1},
+          {"min": 0.25, "max": null, "points": 15},
+          {"min": 0.15, "max": 0.25, "points": 10},
+          {"min": 0.05, "max": 0.15, "points": 6},
+          {"min": 0.00, "max": 0.05, "points": 2},
           {"min": null, "max": 0.00, "points": 0}
         ]
       }

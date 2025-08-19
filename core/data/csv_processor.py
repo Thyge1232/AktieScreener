@@ -1,27 +1,33 @@
+# Fil: core/data/csv_processor.py
+
 import pandas as pd
 import re
 import numpy as np
 
+# --- HJÆLPEFUNKTIONER (Med den korrekte Market Cap logik genindsat) ---
+
 def parse_market_cap(market_cap_str):
-    """Konverterer markeds værdi streng til float i dollars."""
-    if pd.isna(market_cap_str) or market_cap_str in ['-', '']:
+    """Konverterer markeds værdi streng til float i dollars. Håndterer M, B, T og tal uden suffix korrekt."""
+    if pd.isna(market_cap_str) or str(market_cap_str).strip() in ['-', '']:
         return None
-    
-    market_cap_str = str(market_cap_str).strip().replace('$', '').replace(' ', '')
-    market_cap_str = market_cap_str.replace(',', '')
+
+    # Rens strengen for lettere parsing
+    market_cap_str = str(market_cap_str).strip().upper().replace('$', '').replace(',', '')
     
     multipliers = {'M': 1_000_000, 'B': 1_000_000_000, 'T': 1_000_000_000_000}
-    match = re.search(r'^([0-9]+\.?[0-9]*)\s*([MBT])$', market_cap_str, re.IGNORECASE)
     
-    if match:
-        number_part = match.group(1)
+    # Tjek om strengen slutter med M, B, eller T
+    suffix = market_cap_str[-1]
+    if suffix in multipliers:
+        number_part = market_cap_str[:-1]
         try:
             number = float(number_part)
-            suffix = match.group(2).upper()
             return number * multipliers[suffix]
-        except (ValueError, KeyError):
-            pass
-
+        except ValueError:
+            return None
+            
+    # Håndter tal uden suffix (DENNE DEL MANFLEDE I MIN FORRIGE KODE)
+    # Antagelse: Tal uden suffix i Finviz er angivet i millioner.
     try:
         number = float(market_cap_str)
         return number * 1_000_000
@@ -29,89 +35,63 @@ def parse_market_cap(market_cap_str):
         print(f"[DEBUG] Kunne ikke parse market cap for: '{market_cap_str}'")
         return None
 
-def parse_percentage(percent_str):
-    """Konverterer procent streng (f.eks. '25.00%') til float (0.25)."""
-    if pd.isna(percent_str) or percent_str in ['-', '']:
-        return None
-    percent_str = str(percent_str).strip().rstrip('%')
-    try:
-        return float(percent_str) / 100.0
-    except ValueError:
-        return None
+def find_column_name(df, possible_names):
+    """Finder det første matchende kolonnenavn i en liste."""
+    for name in possible_names:
+        if name in df.columns:
+            return name
+    return None
 
-def parse_numeric(value_str):
-    """Konverterer en generel streng til float, håndterer '-'."""
-    if pd.isna(value_str) or value_str in ['-', '']:
-        return None
-    try:
-        value_str_clean = str(value_str).strip().replace(',', '')
-        return float(value_str_clean)
-    except ValueError:
-        return None
+# --- HOVEDFUNKTION (ROBUST VERSION) ---
 
 def process_finviz_csv(file):
-    """Indlæser og parser en Finviz CSV-fil."""
+    """Indlæser og parser en Finviz CSV-fil med robust datatype-konvertering."""
     try:
         df = pd.read_csv(file, sep=',', on_bad_lines='skip', header=0, quoting=1)
-        df.columns = df.columns.str.strip().str.replace('"', '')
-        
+        df.columns = df.columns.str.strip().str.replace('"', '', regex=False)
+
         if 'Ticker' in df.columns:
             df = df.dropna(subset=['Ticker'], how='all')
-        else:
-            df = df.dropna(how='all')
 
-        percentage_columns = [
-            "EPS Growth Past 3 Years", "EPS Growth Past 5 Years", "EPS Growth Next 5 Years",
-            "Sales Growth Past 3 Years", "Sales Growth Past 5 Years", "Sales Growth Quarter Over Quarter",
-            "Return on Assets", "Return on Equity", "Return on Invested Capital",
-            "Gross Margin", "Operating Margin", "Profit Margin",
-            "Performance (Month)", "Performance (Quarter)", "Performance (Year)",
-            "Performance (3 Years)", "Performance (5 Years)",
-            "Insider Ownership", "Change"
-        ]
-
-        for col in percentage_columns:
-            if col in df.columns:
-                df[col] = df[col].apply(parse_percentage)
-
+        # --- Trin 1: Håndter specielle konverteringer ---
         if "Market Cap" in df.columns:
             df["Market Cap"] = df["Market Cap"].apply(parse_market_cap)
 
-        non_parsing_columns = set(percentage_columns) | {"No.", "Ticker", "Company", "Sector", "Industry", "Country", "Earnings Date", "Market Cap"}
-        numeric_columns_to_process = set(df.columns) - non_parsing_columns
-        
-        for col in numeric_columns_to_process:
+        percentage_columns = [col for col in df.columns if '%' in col or 'Yield' in col or 'Ratio' in col or 'Margin' in col or 'Ownership' in col or 'Change' in col or 'Return' in col or 'Performance' in col or 'Growth' in col or 'Transactions' in col or 'Interest' in col]
+        for col in percentage_columns:
+            if df[col].dtype == 'object':
+                df[col] = pd.to_numeric(df[col].astype(str).str.rstrip('%'), errors='coerce') / 100.0
+
+        # --- Trin 2: Hoved-konvertering af ALLE andre potentielt numeriske kolonner ---
+        non_numeric_cols = {"Ticker", "Company", "Sector", "Industry", "Country", "Earnings Date"}
+        cols_to_convert = [col for col in df.columns if col not in non_numeric_cols]
+
+        print("[DEBUG] Sikrer korrekte numeriske datatyper...")
+        for col in cols_to_convert:
             if col in df.columns:
-                df[col] = df[col].apply(parse_numeric)
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+        print("[DEBUG] Datatyper er nu sikret.")
 
+        # --- Trin 3: Ryd op og udfør beregninger ---
         if 'Country' in df.columns:
-            df['Country'] = df['Country'].str.strip().str.strip('"')
+            df['Country'] = df['Country'].astype(str).str.strip().str.strip('"')
 
-        # ========================================================================
-        # == RETTET KODEBLOK STARTER HER ==
-        # Beregn den nye 'Price vs. Book/sh' kolonne til Asset Value profilen.
         try:
-            # Tjekker efter de korrekte kolonnenavne fra din CSV-fil
-            if 'Price' in df.columns and 'Book/sh' in df.columns:
-                
-                # Betingelse for kun at beregne på gyldige, positive tal
-                valid_book_values = (df['Book/sh'].notna()) & (df['Book/sh'] > 0)
-                
-                # Opret den nye kolonne og initialiser med NaN
+            price_col = find_column_name(df, ['Price', 'Last', 'Close'])
+            book_per_share_col = find_column_name(df, ['Book/sh', 'Book Value Per Share'])
+            
+            if price_col and book_per_share_col:
                 df['Price vs. Book/sh'] = np.nan
-                
-                # Udfør beregningen og indsæt i den nye kolonne
-                df.loc[valid_book_values, 'Price vs. Book/sh'] = df['Price'] / df['Book/sh']
-                
-                print("Successfully calculated 'Price vs. Book/sh' column.")
+                valid_mask = (df[book_per_share_col] > 0)
+                df.loc[valid_mask, 'Price vs. Book/sh'] = df.loc[valid_mask, price_col] / df.loc[valid_mask, book_per_share_col]
+                print(f"Successfully calculated 'Price vs. Book/sh' using '{price_col}' and '{book_per_share_col}'.")
             else:
-                # Opdateret advarsel med det korrekte kolonnenavn
-                print("Advarsel: 'Price' eller 'Book/sh' kolonner mangler. Kan ikke beregne 'Price vs. Book/sh'.")
-
+                df['Price vs. Book/sh'] = np.nan
         except Exception as e:
             print(f"En fejl opstod under beregning af 'Price vs. Book/sh': {e}")
-        # ========================================================================
-
+            if 'Price vs. Book/sh' not in df.columns:
+                df['Price vs. Book/sh'] = np.nan
+        
         return df
 
     except Exception as e:
