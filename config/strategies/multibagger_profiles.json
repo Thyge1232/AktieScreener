@@ -81,7 +81,7 @@
   },
   "Høj Vækst": {
     "description": "At finde morgendagens markedsledere i deres tidlige vækstfase. Accepterer højere risiko og værdiansættelse i jagten på eksplosiv omsætningsvækst.",
-    "min_score": 60,
+    "min_score": 70,
     "pre_filters": {
       "market_cap_filter": {
         "data_key": "Market Cap",
