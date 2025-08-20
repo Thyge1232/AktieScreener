@@ -172,7 +172,7 @@ with st.spinner("Kører screening..."):
         class TickerLinkRenderer {
             init(params) {
                 this.eGui = document.createElement('a'); this.eGui.innerText = params.value;
-                this.eGui.href = `https://finviz.com/quote.ashx?t=${params.value}&ta=0&p=w&ty=l&r=y2`;
+                this.eGui.href = `https://finviz.com/quote.ashx?t=${params.value}&ty=l&ta=0&p=w&r=y2`;
                 this.eGui.target = '_blank';
                 this.eGui.style.cssText = 'color: #ADD8E6; text-decoration: underline;';
             }

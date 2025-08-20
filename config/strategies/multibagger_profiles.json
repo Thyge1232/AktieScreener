@@ -15,54 +15,45 @@
         "data_key": "PEG",
         "type": "scaled",
         "description": "PEG-forholdet (P/E / Vækst). En lav værdi indikerer, at prisen er rimelig i forhold til den forventede vækst.",
-        "min_value": 0,
-        "max_value": 3,
-        "target_min": 25,
-        "target_max": 0,
-        "weight": 20
+        "min_value": 0, "max_value": 3, "target_min": 25, "target_max": 0, "weight": 20
       },
       "roic_range": {
         "data_key": "Return on Invested Capital",
         "type": "range",
         "description": "Høj ROIC viser, at selskabet er effektivt til at generere profit fra sin kapital. Et stærkt tegn på en god forretningsmodel ('moat').",
+        "normalization": "sector_median_relative",
         "ranges": [
-          {"min": 0.25, "max": null, "points": 33},
-          {"min": 0.20, "max": 0.25, "points": 28},
-          {"min": 0.15, "max": 0.20, "points": 22},
-          {"min": 0.10, "max": 0.15, "points": 12},
-          {"min": null, "max": 0.10, "points": 0}
+          {"min": 1.6, "max": null, "points": 33},
+          {"min": 1.4, "max": 1.6, "points": 28},
+          {"min": 1.2, "max": 1.4, "points": 22},
+          {"min": 1.0, "max": 1.2, "points": 12},
+          {"min": null, "max": 1.0, "points": 0}
         ]
       },
       "debt_equity_scaled": {
         "data_key": "Total Debt/Equity",
         "type": "scaled",
         "description": "En lav gæld i forhold til egenkapitalen indikerer en sund balance og lav finansiel risiko.",
-        "min_value": 0,
-        "max_value": 1.5,
-        "target_min": 20,
-        "target_max": 0,
-        "weight": 15
+        "normalization": "sector_median_relative_inverse",
+        "min_value": 0, "max_value": 2, "target_min": 0, "target_max": 20, "weight": 15
       },
       "p_fcf_scaled": {
         "data_key": "P/Free Cash Flow",
         "type": "scaled",
         "description": "Måler prisen i forhold til de reelle, frie pengestrømme. Ofte et mere pålideligt mål end P/E. Lavere er billigere.",
-        "min_value": 0,
-        "max_value": 50,
-        "target_min": 15,
-        "target_max": 0,
-        "weight": 15
+        "min_value": 0, "max_value": 50, "target_min": 15, "target_max": 0, "weight": 15
       },
       "op_margin_range": {
         "data_key": "Operating Margin",
         "type": "range",
         "description": "Driftsmarginen viser, hvor meget selskabet tjener pr. omsætningskrone. En høj margin indikerer stærk prissætningskraft.",
+        "normalization": "sector_median_relative",
         "ranges": [
-          {"min": 0.25, "max": null, "points": 7},
-          {"min": 0.18, "max": 0.25, "points": 5},
-          {"min": 0.12, "max": 0.18, "points": 3},
-          {"min": 0.08, "max": 0.12, "points": 1},
-          {"min": null, "max": 0.08, "points": 0}
+          {"min": 1.6, "max": null, "points": 7},
+          {"min": 1.4, "max": 1.6, "points": 5},
+          {"min": 1.2, "max": 1.4, "points": 3},
+          {"min": 1.0, "max": 1.2, "points": 1},
+          {"min": null, "max": 1.0, "points": 0}
         ]
       },
       "insider_own_range": {
@@ -83,12 +74,7 @@
     "description": "At finde morgendagens markedsledere i deres tidlige vækstfase. Accepterer højere risiko og værdiansættelse i jagten på eksplosiv omsætningsvækst.",
     "min_score": 70,
     "pre_filters": {
-      "market_cap_filter": {
-        "data_key": "Market Cap",
-        "type": "binary",
-        "operator": "between",
-        "value": [300000000, 5000000000]
-      }
+      "market_cap_filter": { "data_key": "Market Cap", "type": "binary", "operator": "between", "value": [300000000, 5000000000] }
     },
     "filters": {
       "sales_growth_qoq_range": {
@@ -107,31 +93,19 @@
         "data_key": "EPS Growth Next 5 Years",
         "type": "scaled",
         "description": "Analytikernes forventninger til den fremtidige vækst i indtjening pr. aktie. Kernen i en vækst-case.",
-        "min_value": 0,
-        "max_value": 0.50,
-        "target_min": 0,
-        "target_max": 25,
-        "weight": 30
+        "min_value": 0, "max_value": 0.50, "target_min": 0, "target_max": 25, "weight": 30
       },
       "p_s_scaled": {
         "data_key": "P/S",
         "type": "scaled",
         "description": "Price/Sales. Et nyttigt værdiansættelsesmål for vækstselskaber, der endnu ikke er profitable. Lavere er billigere.",
-        "min_value": 0,
-        "max_value": 25,
-        "target_min": 20,
-        "target_max": 0,
-        "weight": 15
+        "min_value": 0, "max_value": 25, "target_min": 20, "target_max": 0, "weight": 15
       },
       "peg_scaled_loose": {
         "data_key": "PEG",
         "type": "scaled",
         "description": "PEG-forholdet (P/E / Vækst). For vækstselskaber accepteres en højere PEG-værdi end for traditionelle value-selskaber.",
-        "min_value": 0,
-        "max_value": 5,
-        "target_min": 10,
-        "target_max": 0,
-        "weight": 10
+        "min_value": 0, "max_value": 5, "target_min": 10, "target_max": 0, "weight": 10
       },
       "insider_own_range": {
         "data_key": "Insider Ownership",
@@ -150,23 +124,14 @@
     "description": "At finde selskaber, der allerede performer stærkt og er anerkendt af markedet. Strategien bygger på, at 'vindere fortsætter med at vinde'.",
     "min_score": 70,
     "pre_filters": {
-      "market_cap_filter": {
-        "data_key": "Market Cap",
-        "type": "binary",
-        "operator": "between",
-        "value": [300000000, 5000000000]
-      }
+      "market_cap_filter": { "data_key": "Market Cap", "type": "binary", "operator": "between", "value": [300000000, 5000000000] }
     },
     "filters": {
       "perf_quarter_scaled": {
         "data_key": "Performance (Quarter)",
         "type": "scaled",
         "description": "Aktiens procentvise afkast over det seneste kvartal. Et direkte mål for kortsigtet kursmomentum.",
-        "min_value": 0,
-        "max_value": 1.0,
-        "target_min": 0,
-        "target_max": 30,
-        "weight": 25
+        "min_value": 0, "max_value": 1.0, "target_min": 0, "target_max": 30, "weight": 25
       },
       "rel_volume_range": {
         "data_key": "Relative Volume",
