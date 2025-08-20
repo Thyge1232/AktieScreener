@@ -7,9 +7,28 @@ import copy
 from core.favorites_manager import load_favorites, save_favorites
 from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 
-# --- KONFIGURATION OG HJÆLPEFUNKTIONER (UÆNDRET) ---
+# --- SESSION STATE INITIALISERING ---
+if 'force_rerender_count' not in st.session_state:
+    st.session_state.force_rerender_count = 0
+
+if 'vs_weight_history' not in st.session_state:
+    st.session_state['vs_weight_history'] = []
+if 'vs_current_history_index' not in st.session_state:
+    st.session_state['vs_current_history_index'] = -1
+
+if 'force_favorites_update' not in st.session_state:
+    st.session_state.force_favorites_update = False
+
+# Hvis der er signaleret en favorit-opdatering, tving en rerender
+if st.session_state.force_favorites_update:
+    st.session_state.force_rerender_count += 1
+    st.session_state.force_favorites_update = False
+    st.rerun()
+
+# --- RESTEN AF DIN EKSISTERENDE KODE FRAFØR ---
 BASE_COLUMNS_TO_DISPLAY = ['Ticker', 'Company', 'Sector', 'Industry', 'Country', 'Price', 'Market Cap']
 st.title("📊 Value Investment Screener")
+
 # ... (alle dine uændrede hjælpefunktioner fra format_market_cap til redo_weights) ...
 def format_market_cap(num):
     if pd.isna(num) or not isinstance(num, (int, float)): return "N/A"
@@ -148,26 +167,19 @@ with st.spinner("Kører screening..."):
         final_cols = [col for col in ordered_unique_cols if col in df_results.columns]
         df_for_grid = df_results[final_cols].copy()
 
+        if 'favorites' not in st.session_state:
+            st.session_state.favorites = load_favorites()
+
         # 2. Tilføj en boolean favorit-kolonne
-        if 'favorites' not in st.session_state: st.session_state.favorites = load_favorites()
-        df_for_grid.insert(0, 'is_favorite', df_for_grid['Ticker'].isin(st.session_state.favorites))
+
+        # Opret en ny kolonne baseret på de aktuelle favoritter
+        current_favorites_set = set(st.session_state.favorites)
+        df_for_grid['is_favorite'] = df_for_grid['Ticker'].isin(current_favorites_set)
+
 
         # 3. Definer GENANVENDELIGE JsCode formatters og renderers
         # --- Cell Renderers (for knapper og links)
-        js_button_renderer = JsCode("""
-        class FavoriteCellRenderer {
-            init(params) {
-                this.params = params; this.eGui = document.createElement('div');
-                this.eGui.style.cssText = 'text-align: center; cursor: pointer; font-size: 1.2em;';
-                this.updateIcon();
-                this.eGui.addEventListener('click', this.onClick.bind(this));
-            }
-            onClick() { this.params.node.setDataValue('is_favorite', !this.params.value); }
-            updateIcon() { this.eGui.innerHTML = this.params.value ? "⭐" : "➕"; }
-            getGui() { return this.eGui; }
-            refresh(params) { this.params = params; this.updateIcon(); return true; }
-        }""")
-
+        js_button_renderer = JsCode("""class FavoriteCellRenderer{init(params){this.params=params;this.eGui=document.createElement("div");this.eGui.style.cssText="text-align: center; cursor: pointer; font-size: 1.2em;";this.eGui.innerHTML=params.value?"⭐":"➕";this.eGui.addEventListener("click",()=>{this.params.node.setDataValue("is_favorite",!this.params.value)})}getGui(){return this.eGui}refresh(params){this.params=params;this.eGui.innerHTML=params.value?"⭐":"➕";return true}}""")
         js_ticker_renderer = JsCode("""
         class TickerLinkRenderer {
             init(params) {
@@ -226,25 +238,41 @@ with st.spinner("Kører screening..."):
 
         # 8. Byg og vis tabellen
         grid_options = gb.build()
+        grid_key = f"aggrid_{selected_profile_name_vs}_{st.session_state.force_rerender_count}"
         grid_response = AgGrid(
             df_for_grid,
             gridOptions=grid_options,
+            key=grid_key, # <--- TILFØJ DENNE KEY
             allow_unsafe_jscode=True,
             theme="streamlit-dark",
             fit_columns_on_grid_load=True,
             height=600,
-            update_on=['cellValueChanged'], # Lyt efter ændringer på celleniveau
+            update_on=['cellValueChanged'],
         )
 
-        # 9. Håndter klik på ⭐-ikonet
+        # --- 9. Håndter klik på ⭐-ikonet (den robuste, ikke-destruktive metode) ---
         if grid_response and grid_response.get('data') is not None:
             updated_df = grid_response['data']
-            original_favorites_set = set(st.session_state.favorites)
-            new_favorites_set = set(updated_df[updated_df['is_favorite'] == True]['Ticker'])
-
-            if original_favorites_set != new_favorites_set:
-                st.session_state.favorites = list(new_favorites_set)
+            
+            # Sæt af alle tickers, der er synlige i den nuværende tabel
+            tickers_in_view = set(df_for_grid['Ticker'])
+            
+            # Sæt af favoritter, som IKKE er synlige i den nuværende tabel
+            # Disse skal vi for alt i verden bevare!
+            favorites_outside_view = set(st.session_state.favorites) - tickers_in_view
+            
+            # Sæt af favoritter, der er synlige OG markeret i den opdaterede tabel
+            favorites_in_view_after_change = set(updated_df[updated_df['is_favorite'] == True]['Ticker'])
+            
+            # Den nye, komplette favoritliste er foreningen af de bevarede og de nyligt opdaterede
+            new_total_favorites_set = favorites_in_view_after_change.union(favorites_outside_view)
+            
+            
+            # Sammenlign med den oprindelige tilstand og opdater kun, hvis der er en ændring
+            if set(st.session_state.favorites) != new_total_favorites_set:
+                st.session_state.favorites = sorted(list(new_total_favorites_set)) # Sorter for konsistens
                 save_favorites(st.session_state.favorites)
+                st.session_state.force_rerender_count += 1 # Forøg tælleren
                 st.rerun()
 
         # 10. UI elementer under tabellen (uændret)

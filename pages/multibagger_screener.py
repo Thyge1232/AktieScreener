@@ -1,4 +1,4 @@
-# Filnavn: pages/multibagger_screener.py
+# pages/multibagger_screener.py
 
 import streamlit as st
 import pandas as pd
@@ -9,6 +9,28 @@ import copy
 # NYE IMPORTS: Tilføjet for AgGrid og favoritter
 from core.favorites_manager import load_favorites, save_favorites
 from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
+
+# --- SESSION STATE INITIALISERING (PLACERES FØRST) ---
+# Initialiser alle nødvendige session state variabler
+if 'force_rerender_count' not in st.session_state:
+    st.session_state.force_rerender_count = 0
+
+if 'mb_weight_history' not in st.session_state:
+    st.session_state['mb_weight_history'] = []
+if 'mb_current_history_index' not in st.session_state:
+    st.session_state['mb_current_history_index'] = -1
+
+if 'force_favorites_update' not in st.session_state:
+    st.session_state.force_favorites_update = False
+
+# Tjek for favorit-opdateringer fra andre sider OG tving en opdatering hvis nødvendigt
+# Dette sikrer at tabellen genindlæses med korrekte favorit-statusser
+if st.session_state.force_favorites_update:
+    st.session_state.force_rerender_count += 1
+    st.session_state.force_favorites_update = False
+    # Genindlæs favorites i session state for at sikre de er opdaterede
+    st.session_state.favorites = load_favorites()
+    st.rerun()
 
 # --- KONFIGURATION OG HJÆLPEFUNKTIONER (stort set uændret) ---
 BASE_COLUMNS_TO_DISPLAY = ['Ticker', 'Company', 'Sector', 'Industry', 'Country', 'Price', 'Market Cap']
@@ -135,11 +157,36 @@ if not df_results.empty:
     final_cols = [col for col in ordered_unique_cols if col in df_results.columns]
     df_for_grid = df_results[final_cols].copy()
 
-    if 'favorites' not in st.session_state: st.session_state.favorites = load_favorites()
-    df_for_grid.insert(0, 'is_favorite', df_for_grid['Ticker'].isin(st.session_state.favorites))
+    # --- VIGTIGT: Synkroniser is_favorite kolonnen med den nyeste favoritliste ---
+    # Sikrer at vi altid bruger den nyeste liste fra disk/session
+    current_favorites = load_favorites() # Hent altid den nyeste liste
+    st.session_state.favorites = current_favorites # Opdater session state også
+    
+    # Opret is_favorite kolonnen baseret på den nyeste liste
+    df_for_grid['is_favorite'] = df_for_grid['Ticker'].isin(set(current_favorites))
 
     # Genanvendelige JsCode-definitioner fra value_screener
-    js_button_renderer = JsCode("""class FavoriteCellRenderer{init(params){this.params=params;this.eGui=document.createElement("div");this.eGui.style.cssText="text-align: center; cursor: pointer; font-size: 1.2em;";this.updateIcon();this.eGui.addEventListener("click",this.onClick.bind(this))}onClick(){this.params.node.setDataValue("is_favorite",!this.params.value)}updateIcon(){this.eGui.innerHTML=this.params.value?"⭐":"➕"}getGui(){return this.eGui}refresh(params){this.params=params;this.updateIcon();return true}}""")
+    js_button_renderer = JsCode("""
+        class FavoriteCellRenderer {
+            init(params) {
+                this.params = params;
+                this.eGui = document.createElement('div');
+                this.eGui.style.cssText = 'text-align: center; cursor: pointer; font-size: 1.2em;';
+                this.eGui.innerHTML = params.value ? "⭐" : "➕"; // Sæt det korrekte ikon fra start
+                this.eGui.addEventListener('click', () => {
+                    // Send blot den modsatte værdi tilbage til Python
+                    this.params.node.setDataValue('is_favorite', !this.params.value);
+                });
+            }
+            getGui() { return this.eGui; }
+            // Refresh er nu kritisk. Den kaldes af AgGrid, når data ændres.
+            refresh(params) {
+                this.params = params;
+                this.eGui.innerHTML = params.value ? "⭐" : "➕";
+                return true;
+            }
+        }
+        """)    
     js_ticker_renderer = JsCode("""class TickerLinkRenderer{init(params){this.eGui=document.createElement("a");this.eGui.innerText=params.value;this.eGui.href=`https://finviz.com/quote.ashx?t=${params.value}&ty=l&ta=0&p=w&r=y2`;this.eGui.target="_blank";this.eGui.style.cssText="color: #ADD8E6; text-decoration: underline;"}getGui(){return this.eGui}}""")
     js_market_cap_formatter = JsCode("function(params){if(params.value==null||isNaN(params.value))return'-';const num=parseFloat(params.value);if(num<1e9)return'$'+(num/1e6).toFixed(1)+'M';if(num<1e12)return'$'+(num/1e9).toFixed(2)+'B';return'$'+(num/1e12).toFixed(2)+'T'}")
     js_price_formatter = JsCode("function(params){return params.value!=null&&!isNaN(params.value)?'$'+parseFloat(params.value).toFixed(2):'-'}")
@@ -148,7 +195,16 @@ if not df_results.empty:
     js_two_decimal_formatter = JsCode("function(params){return params.value!=null&&!isNaN(params.value)?parseFloat(params.value).toFixed(2):'-'}")
     
     gb = GridOptionsBuilder.from_dataframe(df_for_grid)
-    gb.configure_column("is_favorite", headerName="⭐", cellRenderer=js_button_renderer, width=60, editable=False, lockPosition=True)
+    gb.configure_column(
+        "is_favorite", 
+        headerName="⭐", 
+        cellRenderer=js_button_renderer, 
+        # DENNE NYE DEL ER AFGØRENDE:
+        onCellValueChanged=JsCode("() => {}"), # En tom funktion, der tvinger en opdatering
+        width=60, 
+        editable=False, 
+        lockPosition=True
+    )    
     gb.configure_column("Ticker", cellRenderer=js_ticker_renderer)
     gb.configure_column("Market Cap", valueFormatter=js_market_cap_formatter)
     gb.configure_column("Price", valueFormatter=js_price_formatter)
@@ -167,16 +223,44 @@ if not df_results.empty:
     gb.configure_grid_options(rowStyle=js_row_style)
     
     grid_options = gb.build()
-    grid_response = AgGrid(df_for_grid, gridOptions=grid_options, allow_unsafe_jscode=True, theme="streamlit-dark", fit_columns_on_grid_load=True, height=600, update_on=['cellValueChanged'])
+    # Brug både profilnavn og force_rerender_count for at sikre unik key
+    grid_key = f"aggrid_{selected_profile_name_mb}_{st.session_state.force_rerender_count}"
+    grid_response = AgGrid(
+        df_for_grid, 
+        gridOptions=grid_options, 
+        key=grid_key, # <--- Kritisk: Unik key tvinger genopbygning
+        allow_unsafe_jscode=True, 
+        theme="streamlit-dark", 
+        fit_columns_on_grid_load=True, 
+        height=600, 
+        update_on=['cellValueChanged']
+    )
 
+    # --- 9. Håndter klik på ⭐-ikonet (den robuste, ikke-destruktive metode) ---
     if grid_response and grid_response.get('data') is not None:
-        updated_df = grid_response['data']
-        original_favorites_set = set(st.session_state.favorites)
-        new_favorites_set = set(updated_df[updated_df['is_favorite'] == True]['Ticker'])
-        if original_favorites_set != new_favorites_set:
-            st.session_state.favorites = list(new_favorites_set)
-            save_favorites(st.session_state.favorites)
-            st.rerun()
+            updated_df = grid_response['data']
+            
+            # Sæt af alle tickers, der er synlige i den nuværende tabel
+            tickers_in_view = set(df_for_grid['Ticker'])
+            
+            # Sæt af favoritter, som IKKE er synlige i den nuværende tabel
+            # Disse skal vi for alt i verden bevare!
+            favorites_outside_view = set(st.session_state.favorites) - tickers_in_view
+            
+            # Sæt af favoritter, der er synlige OG markeret i den opdaterede tabel
+            favorites_in_view_after_change = set(updated_df[updated_df['is_favorite'] == True]['Ticker'])
+            
+            # Den nye, komplette favoritliste er foreningen af de bevarede og de nyligt opdaterede
+            new_total_favorites_set = favorites_in_view_after_change.union(favorites_outside_view)
+            
+            # Sammenlign med den oprindelige tilstand og opdater kun, hvis der er en ændring
+            if set(st.session_state.favorites) != new_total_favorites_set:
+                st.session_state.favorites = sorted(list(new_total_favorites_set)) # Sorter for konsistens
+                save_favorites(st.session_state.favorites)
+                # Signalér til andre sider og tving en opdatering af denne side også
+                st.session_state.force_favorites_update = True
+                st.session_state.force_rerender_count += 1 # Forøg tælleren
+                st.rerun()
 
     st.markdown("---")
     csv_full = df_results.to_csv(index=False).encode('utf-8')

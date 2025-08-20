@@ -5,10 +5,14 @@ from core.favorites_manager import load_favorites, save_favorites
 from core.data.api_client import get_data_for_favorites
 
 st.set_page_config(layout="wide")
-st.title("⭐ Mine Favoritter")
+st.title("⭐ Mine Favoritter")  
 
-# Indlæs den gemte liste af ticker-navne
-favorite_tickers = load_favorites()
+# Synkroniser med global session state
+if 'favorites' in st.session_state:
+    favorite_tickers = st.session_state.favorites
+else:
+    favorite_tickers = load_favorites()
+    st.session_state.favorites = favorite_tickers
 
 if not favorite_tickers:
     st.info("Du har endnu ikke tilføjet nogen favoritter. Find aktier i en af screenerne og tilføj dem med ➕.")
@@ -26,10 +30,16 @@ for ticker in favorite_tickers:
 if tickers_to_remove:
     updated_favorites = [t for t in favorite_tickers if t not in tickers_to_remove]
     save_favorites(updated_favorites)
+    st.session_state.favorites = updated_favorites  # Synkroniser med global state
     st.success(f"Fjernede {', '.join(tickers_to_remove)} fra din liste.")
-    # Nulstil data-cachen for at tvinge genhentning af den nye, kortere liste
+    
+    # Nulstil data-cachen
     if 'favorites_data' in st.session_state:
         del st.session_state['favorites_data']
+    
+    # Signal til andre sider at favoritter er opdateret
+    st.session_state.force_favorites_update = True
+    
     st.rerun()
 
 st.markdown("---")
