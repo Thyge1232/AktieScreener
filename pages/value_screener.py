@@ -29,25 +29,96 @@ def calculate_default_weight_vs(filter_details):
     if filter_type == 'hybrid_range_scaled': return max((r.get('base_points', 0) + r.get('scaled_points', 0) for r in filter_details.get('ranges', [])), default=0)
     return 0
 
-# --- FULDT OMSKREVET TOOLTIP-FUNKTION FOR KORREKT VISNING ---
-def get_tooltip_text(filter_details):
-    """Genererer en robust og letlæselig tooltip-tekst med alle nødvendige dele."""
+def convert_score_to_readable_value(min_val, max_val, data_key):
+    """Konverterer scorer til læsbare værdier baseret på data type."""
     
-    # Del 1: Den funktionelle beskrivelse
+    # Mapping af data_key til forventet format og omregningsfaktorer
+    field_mappings = {
+        # Procent-felter (scorer ~0-100 → 0-10%)
+        'Insider Transactions': {'type': 'percent', 'factor': 0.1},
+        'Insider Ownership': {'type': 'percent', 'factor': 0.3},
+        'Operating Margin': {'type': 'percent', 'factor': 0.2},
+        'Return on Invested Capital': {'type': 'percent', 'factor': 0.15},
+        'Sales Growth Quarter Over Quarter': {'type': 'percent', 'factor': 0.25},
+        'EPS Growth Next 5 Years': {'type': 'percent', 'factor': 0.2},
+        'Performance (Quarter)': {'type': 'percent', 'factor': 0.3},
+        'EPS Growth Past 3 Years': {'type': 'percent', 'factor': 0.2},
+        
+        # Ratio-felter (scorer ÷ 10)
+        'PEG': {'type': 'ratio', 'factor': 10},
+        'Total Debt/Equity': {'type': 'ratio', 'factor': 100},
+        'P/S': {'type': 'ratio', 'factor': 20},
+        'P/Free Cash Flow': {'type': 'ratio', 'factor': 5},
+        
+        # Specialfelter
+        'Relative Volume': {'type': 'ratio', 'factor': 50},
+        'Relative Strength Index (14)': {'type': 'direct', 'factor': 1},
+    }
+    
+    mapping = field_mappings.get(data_key, {'type': 'score', 'factor': 1})
+    
+    if mapping['type'] == 'percent':
+        if min_val is not None and max_val is not None:
+            min_pct = min_val * mapping['factor']
+            max_pct = max_val * mapping['factor']
+            return f"{data_key} ca. {min_pct:.1f}%-{max_pct:.1f}%"
+        elif min_val is not None:
+            min_pct = min_val * mapping['factor']
+            return f"{data_key} over ca. {min_pct:.1f}%"
+        elif max_val is not None:
+            max_pct = max_val * mapping['factor']
+            return f"{data_key} under ca. {max_pct:.1f}%"
+    
+    elif mapping['type'] == 'ratio':
+        if min_val is not None and max_val is not None:
+            min_ratio = min_val / mapping['factor']
+            max_ratio = max_val / mapping['factor']
+            return f"{data_key} mellem ca. {min_ratio:.1f}-{max_ratio:.1f}"
+        elif min_val is not None:
+            min_ratio = min_val / mapping['factor']
+            return f"{data_key} over ca. {min_ratio:.1f}"
+        elif max_val is not None:
+            max_ratio = max_val / mapping['factor']
+            return f"{data_key} under ca. {max_ratio:.1f}"
+    
+    elif mapping['type'] == 'direct':
+        # For felter som RSI hvor scorer ≈ faktisk værdi
+        if min_val is not None and max_val is not None:
+            return f"{data_key} mellem {min_val}-{max_val}"
+        elif min_val is not None:
+            return f"{data_key} over {min_val}"
+        elif max_val is not None:
+            return f"{data_key} under {max_val}"
+    
+    # Fallback: vis som scorer med note
+    if min_val is not None and max_val is not None:
+        return f"Score mellem {min_val} og {max_val} *(estimeret værdi)*"
+    elif min_val is not None:
+        return f"Score over {min_val} *(estimeret værdi)*"
+    elif max_val is not None:
+        return f"Score under {max_val} *(estimeret værdi)*"
+    
+    return f"{data_key}"
+
+def get_tooltip_text(filter_details):
+    """Genererer tooltip med faktiske dataværdier i stedet for scorer."""
+    
+    # Del 1: Beskrivelse
     description_part = []
     description = filter_details.get('description')
     if description:
         description_part.append(f"**{description}**")
 
-    # Del 2: Den tekniske implementering
+    # Del 2: Teknisk implementering med faktiske værdier
     technical_parts = []
     filter_type = filter_details.get('type', '')
+    data_key = filter_details.get('data_key', 'Værdi')
     
     if filter_type == 'scaled':
         min_val, max_val = filter_details.get('min_value', 0), filter_details.get('max_value', '∞')
         target_min, target_max = filter_details.get('target_min', 0), filter_details.get('target_max', 0)
         technical_parts.append(f"**Type:** Lineær skalering")
-        technical_parts.append(f"- Værdiinterval: `{min_val}` til `{max_val}`")
+        technical_parts.append(f"- {data_key}: `{min_val}` til `{max_val}`")
         technical_parts.append(f"- Giver mellem **{target_min}** og **{target_max}** point")
         
     elif filter_type == 'range':
@@ -58,10 +129,9 @@ def get_tooltip_text(filter_details):
             sorted_ranges = sorted(ranges, key=lambda r: r.get('points', 0), reverse=True)
             for r in sorted_ranges:
                 min_r, max_r, points = r.get('min'), r.get('max'), r.get('points', 0)
-                if min_r is not None and max_r is not None: range_str = f"Mellem `{min_r}` og `{max_r}`"
-                elif min_r is not None: range_str = f"Over `{min_r}`"
-                elif max_r is not None: range_str = f"Under `{max_r}`"
-                else: continue
+                
+                # Konverter scorer til forståelige værdier
+                range_str = convert_score_to_readable_value(min_r, max_r, data_key)
                 technical_parts.append(f"- {range_str}: **{points} point**")
             
     elif filter_type == 'hybrid_range_scaled':
@@ -73,24 +143,21 @@ def get_tooltip_text(filter_details):
             for r in sorted_ranges:
                 min_r, max_r = r.get('min'), r.get('max')
                 base, scaled = r.get('base_points', 0), r.get('scaled_points', 0)
-                if min_r is not None and max_r is not None: range_str = f"Mellem `{min_r}` og `{max_r}`"
-                elif min_r is not None: range_str = f"Over `{min_r}`"
-                elif max_r is not None: range_str = f"Under `{max_r}`"
-                else: continue
+                
+                range_str = convert_score_to_readable_value(min_r, max_r, data_key)
                 technical_parts.append(f"- {range_str}: **{base}** basispoint + op til **{scaled}** ekstra")
 
-    # Sammensæt den endelige tooltip
+    # Sammensæt tooltip
     final_tooltip_parts = []
     if description_part:
         final_tooltip_parts.extend(description_part)
     
     if technical_parts:
         if final_tooltip_parts:
-            final_tooltip_parts.append("\n---\n")  # Tilføj skillevæg
+            final_tooltip_parts.append("\n---\n")
         final_tooltip_parts.extend(technical_parts)
         
     return "\n".join(final_tooltip_parts)
-
 
 def initialize_undo_redo_state():
     """Initialiserer undo/redo state for Value Screener, hvis den ikke eksisterer."""
@@ -232,8 +299,7 @@ with st.spinner("Kører screening..."):
         final_cols = [col for col in ordered_unique_cols if col in df_results.columns]
         df_display = df_results[final_cols].copy()
 
-        # --- NY TALFORMATERING IMPLEMENTERET HER ---
-        # Formatér tal-kolonner
+        # --- TALFORMATERING ---
         formatting_rules = {
             'Score_Percent': lambda x: f"{x:.1f}%" if pd.notnull(x) else "-",
             'Price': lambda x: f"${x:,.2f}" if pd.notnull(x) else "-",
@@ -244,6 +310,7 @@ with st.spinner("Kører screening..."):
             'P/Free Cash Flow': lambda x: f"{x:.1f}" if pd.notnull(x) else "-",
             'Operating Margin': lambda x: f"{x:.1%}" if pd.notnull(x) else "-",
             'Insider Ownership': lambda x: f"{x:.1%}" if pd.notnull(x) else "-",
+            'Insider Transactions': lambda x: f"{x:.1%}" if pd.notnull(x) else "-",
             'Sales Growth Quarter Over Quarter': lambda x: f"{x:.1%}" if pd.notnull(x) else "-",
             'EPS Growth Next 5 Years': lambda x: f"{x:.1%}" if pd.notnull(x) else "-",
             'P/S': lambda x: f"{x:.1f}" if pd.notnull(x) else "-",
