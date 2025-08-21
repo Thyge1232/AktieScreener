@@ -1,3 +1,5 @@
+# core/screening/multibagger_screener.py
+import streamlit as st
 import pandas as pd
 from config_loader import load_region_mappings
 from .utils import (
@@ -6,7 +8,7 @@ from .utils import (
     SectorNormalizer, apply_normalization
 )
 
-
+@st.cache_data(ttl=300) # Cache resultater i 5 minutter
 def screen_stocks_value(df, profile_name, config, selected_regions=None, dynamic_weights=None):
     """
     Hovedfunktion til Value screening med forbedret normalisering.
