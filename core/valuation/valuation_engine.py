@@ -534,7 +534,7 @@ class EnhancedDCFValuation:
         sensitivity['growth_rate'] = {}
         for scenario, growth in growth_scenarios.items():
             try:
-                # Create a copy of inputs to modify
+                        # KORREKT: Opret en ny, uafhængig kopi af ValuationInputs
                 modified_inputs = ValuationInputs(**inputs.__dict__)
                 modified_inputs.revenue_growth_rate = growth
                 result = EnhancedDCFValuation.calculate_comprehensive_dcf(
