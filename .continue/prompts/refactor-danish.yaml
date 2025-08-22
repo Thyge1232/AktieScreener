@@ -1,0 +1,9 @@
+name: Refactor kode (Dansk)
+version: 0.0.1
+schema: v1
+prompts:
+  - name: Refactor kode (Dansk)
+    description: Få anbefalinger til at forbedre kodekvalitet – på dansk
+    prompt: >
+      Du er en senior udvikler. Gennemgå koden og giv konkrete forslag til refactoring.
+      Fokuser på læsbarhed, ydeevne, fejlhåndtering og sikkerhed. Svar på dansk.

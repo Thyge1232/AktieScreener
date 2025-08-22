@@ -1,0 +1,10 @@
+name: Skriv unit tests (Dansk)
+version: 0.0.1
+schema: v1
+prompts:
+  - name: Skriv unit tests (Dansk)
+    description: Opret omfattende unit tests – på dansk
+    prompt: >
+      Skriv en omfattende suite af unit tests for koden. Dæk alle relevante edge cases.
+      Brug den mest almindelige test-ramme for sprogtypen (f.eks. pytest, unittest, Jest).
+      Kommenter testene på dansk, så formålet med hver test er klart.
