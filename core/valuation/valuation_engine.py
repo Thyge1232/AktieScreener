@@ -1202,3 +1202,65 @@ class ComprehensiveValuationEngine:
 
 # Global instance for easy access
 valuation_engine = ComprehensiveValuationEngine()
+
+# Tilføj denne funktion i bunden af core/valuation/valuation_engine.py
+
+def get_valuation_data(tickers: List[str]) -> pd.DataFrame:
+    """
+    Henter værdiansættelsesdata for en liste af tickers.
+    
+    Args:
+        tickers: Liste af aktiesymboler (f.eks. ['AAPL', 'MSFT']).
+        
+    Returns:
+        En pandas DataFrame med værdiansættelsesresultater for hver ticker.
+    """
+    # Initialiser motoren (du kunne også tilføje en global instans, men dette er mere eksplicit)
+    engine = ComprehensiveValuationEngine() 
+    results = []
+    
+    for ticker in tickers:
+        try:
+            logger.info(f"Starter værdiansættelse for {ticker}")
+            # Kald hovedmetoden i motoren
+            result = engine.perform_comprehensive_valuation(ticker)
+            
+            # Tjek om resultatet er succesfuldt
+            if result and 'error' not in result:
+                # Udtræk og formatér de data, som favorites.py forventer
+                processed_result = {
+                    'Ticker': result.get('ticker'),
+                    'Current_Price': result.get('current_price'),
+                    'Fair_Value': result.get('fair_value_weighted'),
+                    'Upside_Pct': result.get('upside_potential'),
+                    # Tilføj flere felter efter behov. Disse er eksempler:
+                    'Company_Type': result.get('company_profile', {}).get('company_type', {}).get('value') if result.get('company_profile') and result['company_profile'].get('company_type') else 'Unknown',
+                    'WACC': result.get('wacc_analysis', {}).get('wacc'),
+                    # Hvis du har data fra DCF-modellen:
+                    # 'Terminal_Growth': result.get('valuation_methods', {}).get('dcf', {}).get('assumptions', {}).get('terminal_growth'),
+                    # 'Projected_FCF': str(result.get('valuation_methods', {}).get('dcf', {}).get('projected_fcf', [])), # Konverter liste til string
+                    # Tilføj Risk Assessment data hvis nødvendigt
+                    # ...
+                }
+                results.append(processed_result)
+            else:
+                # Håndtér fejl for en enkelt ticker
+                error_msg = result.get('error', 'Ukendt fejl')
+                logger.warning(f"Værdiansættelse fejlede for {ticker}: {error_msg}")
+                # Du kan vælge at inkludere en fejl-række eller bare springe over
+                # Her inkluderer vi en række med fejlinfo
+                results.append({
+                    'Ticker': ticker,
+                    'Error': error_msg
+                    # Andre kolonner vil være NaN/None
+                })
+        except Exception as e:
+            # Håndtér uventede fejl
+            logger.error(f"Uventet fejl ved værdiansættelse af {ticker}: {e}", exc_info=True)
+            results.append({
+                'Ticker': ticker,
+                'Error': f"Uventet fejl: {str(e)}"
+            })
+    
+    # Returnér en DataFrame. favorites.py forventer, at denne ikke er tom, hvis der ikke er fejl.
+    return pd.DataFrame(results)
