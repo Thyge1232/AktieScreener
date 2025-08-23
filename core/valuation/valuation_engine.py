@@ -217,8 +217,7 @@ class ComprehensiveValuationEngine:
             # Perform DCF valuation - Brug config og korrekt signatur
             if progress_callback: progress_callback("Running DCF valuation...")
             dcf_result = self.dcf_calculator.calculate_comprehensive_dcf(
-                inputs, wacc_result, self.config.dcf_projection_years_default
-                # Fjern self.config som det 4. argument
+                inputs, wacc_result, self.config.dcf_projection_years_default,self.config
             )
 
             # Comparable valuations - Brug config

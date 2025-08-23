@@ -1,4 +1,4 @@
-# Øverst i filen
+# core/valuation/valuation_config.py
 from dataclasses import dataclass, field
 from typing import Dict
 
@@ -30,7 +30,6 @@ class ValuationConfig:
         'reit': {'dcf': 0.2, 'pe': 0.2, 'ev_ebitda': 0.2, 'pb': 0.4},
         'utility': {'dcf': 0.4, 'pe': 0.2, 'ev_ebitda': 0.2, 'pb': 0.2},
         'cyclical': {'dcf': 0.3, 'pe': 0.3, 'ev_ebitda': 0.3, 'pb': 0.1},
-        # Default fallback
         'default': {'dcf': 0.5, 'pe': 0.2, 'ev_ebitda': 0.2, 'pb': 0.1}
     })
     
@@ -49,26 +48,16 @@ class ValuationConfig:
     fallback_cash_to_debt: float = 0.10
     
     # --- Risikovurderingsparametre ---
-    # Grænser for samlet risikoscore
     risk_score_thresholds: Dict[str, float] = field(default_factory=lambda: {
-        'very_high': 75,
-        'high': 55,
-        'medium': 35,
-        'low': 20,
-        'very_low': 0 # Inclusive lower bound
+        'very_high': 75, 'high': 55, 'medium': 35,
+        'low': 20, 'very_low': 0
     })
     
-    # Vægtninger for risikokategorier
     risk_category_weights: Dict[str, float] = field(default_factory=lambda: {
-        'financial_risk': 0.4,
-        'business_risk': 0.3,
-        'market_risk': 0.2,
-        'liquidity_risk': 0.1
+        'financial_risk': 0.4, 'business_risk': 0.3,
+        'market_risk': 0.2, 'liquidity_risk': 0.1
     })
 
-    # Basispoint for virksomhedstyper (kan udvides)
-    # Dette er en forenkling; i praksis kan det være en mere kompleks struktur
-    # risk_base_scores: Dict[str, float] = field(default_factory=lambda: {...})
-
-# Tilføj dette til __init__ af ComprehensiveValuationEngine:
-# self.config = config or ValuationConfig()
+    # --- NYT: Konfigurerbare parametre for sensitivitetsanalyse ---
+    sensitivity_wacc_variation: float = 0.15  # +/- 15% variation for WACC
+    sensitivity_growth_variation: float = 0.30 # +/- 30% variation for vækstrate

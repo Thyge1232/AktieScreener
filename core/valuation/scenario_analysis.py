@@ -1,103 +1,115 @@
 # core/valuation/scenario_analysis.py
-"""Modul til scenarieanalyse og Monte Carlo simulationer for vÃ¦rdiansÃ¦ttelse."""
+"""Modul til scenarieanalyse og Monte Carlo simulationer for værdiansættelse."""
 
 import logging
 import numpy as np
 from typing import Dict, Any
-from .dcf_engine import DCFEngine, ValuationInputs # Importer DCF-funktioner
+
+from .valuation_inputs import ValuationInputs
+from .valuation_config import ValuationConfig
 
 logger = logging.getLogger(__name__)
 
 class ScenarioAnalysis:
-    """Klasse til at udfÃ¸re scenarieanalyser og simulationer."""
+    """Klasse til at udføre scenarieanalyser og simulationer."""
 
     @staticmethod
-    def perform_sensitivity_analysis(inputs: ValuationInputs, base_wacc: float,
-                                    projection_years: int) -> Dict[str, Dict[str, float]]:
-        """Perform sensitivity analysis on key variables"""
-        # Base case value
-        base_result = DCFEngine.calculate_comprehensive_dcf(
-            inputs, {'wacc': base_wacc}, projection_years
-        )
-        base_value = base_result['value_per_share']
+    def perform_sensitivity_analysis(
+        inputs: ValuationInputs, 
+        base_wacc: float,
+        projection_years: int,
+        base_value_per_share: float,
+        config: ValuationConfig
+    ) -> Dict[str, Dict[str, float]]:
+        """Perform sensitivity analysis using configurable variations and the core DCF calculation."""
+        # Lokal import for at undgå cirkulære afhængigheder på modulniveau
+        from .dcf_engine import DCFEngine
+
         sensitivity = {}
+        
+        # Hent variationsparametre fra den centrale konfiguration
+        wacc_var = config.sensitivity_wacc_variation
+        growth_var = config.sensitivity_growth_variation
+
         # WACC sensitivity
         wacc_scenarios = {
-            'low_wacc': base_wacc * 0.8,
-            'high_wacc': base_wacc * 1.2
+            'low_wacc': base_wacc * (1 - wacc_var), 
+            'high_wacc': base_wacc * (1 + wacc_var)
         }
         sensitivity['wacc'] = {}
         for scenario, wacc in wacc_scenarios.items():
             try:
-                result = DCFEngine.calculate_comprehensive_dcf(
-                    inputs, {'wacc': wacc}, projection_years
-                )
+                # Kald den lette, sikre kerneberegning
+                result = DCFEngine.calculate_core_dcf(inputs, wacc, projection_years, config)
                 sensitivity['wacc'][scenario] = result['value_per_share']
-            except:
-                sensitivity['wacc'][scenario] = base_value
+            except Exception as e:
+                logger.warning(f"Sensitivity scenario '{scenario}' failed: {e}")
+                sensitivity['wacc'][scenario] = base_value_per_share
+        
         # Growth rate sensitivity
         growth_scenarios = {
-            'low_growth': inputs.revenue_growth_rate * 0.7,
-            'high_growth': inputs.revenue_growth_rate * 1.3
+            'low_growth': inputs.revenue_growth_rate * (1 - growth_var), 
+            'high_growth': inputs.revenue_growth_rate * (1 + growth_var)
         }
         sensitivity['growth_rate'] = {}
         for scenario, growth in growth_scenarios.items():
             try:
-                # KORREKT: Opret en ny, uafhÃ¦ngig kopi af ValuationInputs
-                modified_inputs = ValuationInputs(**inputs.__dict__)
+                modified_inputs = inputs.__class__(**inputs.__dict__)
                 modified_inputs.revenue_growth_rate = growth
-                result = DCFEngine.calculate_comprehensive_dcf(
-                    modified_inputs, {'wacc': base_wacc}, projection_years
-                )
+                # Kald den lette, sikre kerneberegning igen
+                result = DCFEngine.calculate_core_dcf(modified_inputs, base_wacc, projection_years, config)
                 sensitivity['growth_rate'][scenario] = result['value_per_share']
-            except:
-                sensitivity['growth_rate'][scenario] = base_value
+            except Exception as e:
+                logger.warning(f"Sensitivity scenario '{scenario}' failed: {e}")
+                sensitivity['growth_rate'][scenario] = base_value_per_share
+        
         return sensitivity
 
     @staticmethod
-    def monte_carlo_simulation(inputs: ValuationInputs, wacc_result: Dict,
-                              projection_years: int, num_simulations: int = 100) -> Dict[str, float]:
-        """Monte Carlo simulation for confidence intervals"""
-        try:
-            values = []
-            base_wacc = wacc_result['wacc']
-            for _ in range(min(num_simulations, 100)):  # Limit for performance
-                # Randomly vary key parameters
-                wacc_variation = np.random.normal(0, 0.01)  # 1% std dev
-                growth_variation = np.random.normal(0, 0.02)  # 2% std dev
-                # Create scenario inputs
-                # Create a copy of inputs to modify
-                scenario_inputs = ValuationInputs(**inputs.__dict__)
-                scenario_inputs.revenue_growth_rate = max(0, inputs.revenue_growth_rate + growth_variation)
-                scenario_wacc = max(0.02, base_wacc + wacc_variation)
-                try:
-                    result = DCFEngine.calculate_comprehensive_dcf(
-                        scenario_inputs, {'wacc': scenario_wacc}, projection_years
-                    )
-                    values.append(result['value_per_share'])
-                except:
-                    continue
-            if len(values) > 10:  # Enough simulations for statistics
-                values = np.array(values)
-                return {
-                    'p10': float(np.percentile(values, 10)),
-                    'p25': float(np.percentile(values, 25)),
-                    'p50': float(np.percentile(values, 50)),
-                    'p75': float(np.percentile(values, 75)),
-                    'p90': float(np.percentile(values, 90)),
-                    'mean': float(np.mean(values)),
-                    'std': float(np.std(values))
-                }
-        except Exception as e:
-            logger.warning(f"Monte Carlo simulation failed: {e}")
-        # Fallback - simple confidence intervals
-        base_value = inputs.free_cash_flow / inputs.shares_outstanding * 15  # Simple multiple
+    def monte_carlo_simulation(
+        inputs: ValuationInputs, 
+        wacc_result: Dict,
+        projection_years: int, 
+        config: ValuationConfig
+    ) -> Dict[str, float]:
+        """Monte Carlo simulation for confidence intervals."""
+        # Lokal import for at undgå cirkulære afhængigheder på modulniveau
+        from .dcf_engine import DCFEngine
+
+        values = []
+        base_wacc = wacc_result.get('wacc', 0.10)
+        num_simulations = min(config.monte_carlo_simulations_default, config.monte_carlo_performance_limit)
+        
+        for _ in range(num_simulations):
+            try:
+                wacc_variation = np.random.normal(0, 0.015)
+                growth_variation = np.random.normal(0, 0.02)
+                
+                scenario_inputs = inputs.__class__(**inputs.__dict__)
+                scenario_inputs.revenue_growth_rate += growth_variation
+                scenario_wacc = base_wacc + wacc_variation
+                
+                # Kald den lette, sikre kerneberegning i simulationen
+                result = DCFEngine.calculate_core_dcf(scenario_inputs, scenario_wacc, projection_years, config)
+                values.append(result['value_per_share'])
+            except Exception:
+                continue
+
+        if len(values) > 10:
+            values = np.array(values)
+            return {
+                'p10': float(np.percentile(values, 10)), 'p25': float(np.percentile(values, 25)),
+                'p50': float(np.percentile(values, 50)), 'p75': float(np.percentile(values, 75)),
+                'p90': float(np.percentile(values, 90)), 'mean': float(np.mean(values)),
+                'std': float(np.std(values))
+            }
+        
+        # Fallback hvis simulationen giver for få resultater
+        base_value = 0
+        if inputs.shares_outstanding > 0:
+            base_value = (inputs.free_cash_flow / inputs.shares_outstanding) * 15
+        
         return {
-            'p10': base_value * 0.6,
-            'p25': base_value * 0.8,
-            'p50': base_value,
-            'p75': base_value * 1.2,
-            'p90': base_value * 1.4,
-            'mean': base_value,
-            'std': base_value * 0.2
+            'p50': base_value, 'mean': base_value, 'std': base_value * 0.2,
+            'p10': base_value * 0.7, 'p90': base_value * 1.3
         }
