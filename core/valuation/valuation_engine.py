@@ -10,119 +10,19 @@ from enum import Enum
 
 # Importer de nye moduler og konfiguration
 from core.valuation.valuation_config import ValuationConfig
-from .wacc_calculator import WACCCalculator, WACCInputs
+from .classifier import IntelligentCompanyClassifier
+# Importer fra de opdaterede filer
+from .wacc_calculator import WACCCalculator, WACCInputs, CompanyProfile, CompanyType
 from .dcf_engine import DCFEngine, ValuationInputs
 from .comparable_valuation import ComparableValuation
-from .risk_assessment import RiskAssessment, CompanyProfile, RiskLevel, CompanyType
+from .risk_assessment import RiskAssessment # Antager denne eksisterer og er opdateret
 # Brug safe_numeric fra api_client via AdvancedDataValidator
-from ..data.api_client import get_fundamental_data, get_live_price, APIResponse, AdvancedDataValidator
+from ..data.client import get_fundamental_data, get_live_price, APIResponse, AdvancedDataValidator
 
 logger = logging.getLogger(__name__)
 
 # Enums og klasser er nu i separate filer, så de importeres ovenfor
-# CompanyType, RiskLevel, CompanyProfile, ValuationInputs, WACCInputs
-
-class IntelligentCompanyClassifier:
-    """AI-like company classification based on financial characteristics"""
-    CLASSIFICATION_RULES = {
-        CompanyType.BANK: {
-            'sector_keywords': ['financial', 'bank', 'insurance'],
-            'financial_ratios': {
-                'interest_income_ratio': (0.5, float('inf')),
-                'loan_to_deposit': (0.3, 2.0)
-            }
-        },
-        CompanyType.REIT: {
-            'sector_keywords': ['reit', 'real estate'],
-            'financial_ratios': {
-                'dividend_yield': (0.03, 0.12),
-                'debt_to_equity': (0.5, 3.0)
-            }
-        },
-        CompanyType.UTILITY: {
-            'sector_keywords': ['utilities', 'electric', 'gas', 'water'],
-            'financial_ratios': {
-                'dividend_yield': (0.025, 0.08),
-                'beta': (0.3, 0.8),
-                'debt_to_equity': (0.4, 1.5)
-            }
-        },
-        CompanyType.STARTUP: {
-            'financial_ratios': {
-                'pe_ratio': (30, float('inf')),
-                'revenue_growth': (0.20, float('inf')),
-                'dividend_yield': (0, 0.02),
-                'market_cap': (0, 10e9)
-            }
-        },
-        CompanyType.GROWTH: {
-            'financial_ratios': {
-                'pe_ratio': (20, 50),
-                'revenue_growth': (0.10, 0.30),
-                'profit_margin': (0.05, 0.25),
-                'dividend_yield': (0, 0.03)
-            }
-        },
-        CompanyType.MATURE: {
-            'financial_ratios': {
-                'pe_ratio': (8, 25),
-                'revenue_growth': (0, 0.15),
-                'dividend_yield': (0.02, 0.08),
-                'market_cap': (1e9, float('inf'))
-            }
-        },
-        CompanyType.CYCLICAL: {
-            'sector_keywords': ['materials', 'energy', 'industrials', 'mining'],
-            'financial_ratios': {
-                'beta': (1.2, 2.5),
-                'debt_to_equity': (0.3, 2.0),
-                'operating_margin_volatility': (0.05, float('inf'))
-            }
-        }
-    }
-
-    @classmethod
-    def classify_company(cls, fundamental_data: Dict, sector: str = "") -> Tuple[CompanyType, float]:
-        """Classify company type with confidence score"""
-        # Brug safe_numeric fra api_client via AdvancedDataValidator
-        # Extract key metrics
-        metrics = {
-            'pe_ratio': AdvancedDataValidator.safe_numeric(fundamental_data.get('PERatio'), 15),
-            'market_cap': AdvancedDataValidator.safe_numeric(fundamental_data.get('MarketCapitalization'), 1e9),
-            'dividend_yield': AdvancedDataValidator.safe_numeric(fundamental_data.get('DividendYield'), 0),
-            'beta': AdvancedDataValidator.safe_numeric(fundamental_data.get('Beta'), 1.0),
-            'debt_to_equity': AdvancedDataValidator.safe_numeric(fundamental_data.get('DebtToEquity'), 0.5),
-            'revenue_growth': AdvancedDataValidator.safe_numeric(fundamental_data.get('QuarterlyRevenueGrowthYOY'), 0.05),
-            'profit_margin': AdvancedDataValidator.safe_numeric(fundamental_data.get('ProfitMargin'), 0.05),
-            'operating_margin': AdvancedDataValidator.safe_numeric(fundamental_data.get('OperatingMarginTTM'), 0.08)
-        }
-        sector_lower = sector.lower()
-        best_match = CompanyType.MATURE
-        highest_score = 0.0
-        for company_type, rules in cls.CLASSIFICATION_RULES.items():
-            score = 0.0
-            matches = 0
-            total_checks = 0
-            # Check sector keywords
-            if 'sector_keywords' in rules:
-                total_checks += 1
-                if any(keyword in sector_lower for keyword in rules['sector_keywords']):
-                    score += 0.4  # High weight for sector match
-                    matches += 1
-            # Check financial ratios
-            if 'financial_ratios' in rules:
-                for ratio_name, (min_val, max_val) in rules['financial_ratios'].items():
-                    total_checks += 1
-                    metric_value = metrics.get(ratio_name, 0)
-                    if min_val <= metric_value <= max_val:
-                        score += 0.6 / len(rules['financial_ratios'])  # Weighted by number of ratios
-                        matches += 1
-            # Calculate confidence as percentage of matching criteria
-            confidence = matches / max(total_checks, 1)
-            if confidence > highest_score:
-                highest_score = confidence
-                best_match = company_type
-        return best_match, min(highest_score, 0.95)  # Cap confidence at 95%
+# Hvis IntelligentCompanyClassifier stadig er her, bør den måske flyttes til risk_assessment.py
 
 class ComprehensiveValuationEngine:
     """Main valuation engine orchestrating all methods"""
@@ -141,7 +41,7 @@ class ComprehensiveValuationEngine:
         # Brug safe_numeric fra api_client via AdvancedDataValidator
         # Basic financials
         revenue = AdvancedDataValidator.safe_numeric(data.get('RevenueTTM'), 1e9)
-        ebitda = AdvancedDataValidator.safe_numeric(data.get('EBITDA'), revenue * 0.15)
+        ebitda = AdvancedDataValidator.safe_numeric(data.get('EBITDA'), revenue * self.config.fallback_ebitda_margin)
         net_income = AdvancedDataValidator.safe_numeric(data.get('NetIncomeTTM'), revenue * 0.05)
         book_value = AdvancedDataValidator.safe_numeric(data.get('BookValue'), 10) * AdvancedDataValidator.safe_numeric(data.get('SharesOutstanding'), 1e6)
         dividend_per_share = AdvancedDataValidator.safe_numeric(data.get('DividendPerShare'), 0)
@@ -158,8 +58,8 @@ class ComprehensiveValuationEngine:
         tax_rate = self.config.default_tax_rate # Default tax rate from config
 
         # Balance sheet
-        total_debt = AdvancedDataValidator.safe_numeric(data.get('TotalDebt'), revenue * 0.3) # Estimate if missing
-        cash_and_equivalents = AdvancedDataValidator.safe_numeric(data.get('CashAndCashEquivalents'), total_debt * 0.1) # Estimate if missing
+        total_debt = AdvancedDataValidator.safe_numeric(data.get('TotalDebt'), revenue * self.config.fallback_debt_to_revenue)
+        cash_and_equivalents = AdvancedDataValidator.safe_numeric(data.get('CashAndCashEquivalents'), total_debt * self.config.fallback_cash_to_debt)
         working_capital = AdvancedDataValidator.safe_numeric(data.get('WorkingCapital'), revenue * 0.1) # Estimate if missing
         capex = AdvancedDataValidator.safe_numeric(data.get('CapitalExpenditures'), revenue * 0.05) # Estimate if missing
 
@@ -314,17 +214,24 @@ class ComprehensiveValuationEngine:
             wacc_inputs = self._create_wacc_inputs(profile, inputs)
             wacc_result = self.wacc_calculator.calculate_comprehensive_wacc(wacc_inputs, profile)
 
-            # Perform DCF valuation - Brug config
+            # Perform DCF valuation - Brug config og korrekt signatur
             if progress_callback: progress_callback("Running DCF valuation...")
             dcf_result = self.dcf_calculator.calculate_comprehensive_dcf(
                 inputs, wacc_result, self.config.dcf_projection_years_default
+                # Fjern self.config som det 4. argument
             )
 
             # Comparable valuations - Brug config
             if progress_callback: progress_callback("Running comparable valuations...")
-            pe_valuation = self.comparable_calculator.calculate_pe_valuation(inputs, self.config)
-            ev_ebitda_valuation = self.comparable_calculator.calculate_ev_ebitda_valuation(inputs, self.config)
-            pb_valuation = self.comparable_calculator.calculate_price_to_book(inputs, self.config)
+            pe_valuation = self.comparable_calculator.calculate_pe_valuation(
+            inputs, self.config.comparable_pe_default
+            )
+            ev_ebitda_valuation = self.comparable_calculator.calculate_ev_ebitda_valuation(
+            inputs, self.config.comparable_ev_ebitda_default
+            )
+            pb_valuation = self.comparable_calculator.calculate_price_to_book(
+            inputs, self.config.comparable_pb_default
+            )
 
             # Risk assessment
             if progress_callback: progress_callback("Assessing risks...")

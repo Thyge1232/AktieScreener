@@ -42,6 +42,11 @@ class ValuationConfig:
     comparable_growth_premium_factor_pe: float = 2.0
     comparable_growth_premium_factor_ev_ebitda: float = 1.5
     comparable_roe_premium_threshold: float = 0.15
+
+    # --- Fallback Estimater for Manglende Data ---
+    fallback_ebitda_margin: float = 0.15
+    fallback_debt_to_revenue: float = 0.30
+    fallback_cash_to_debt: float = 0.10
     
     # --- Risikovurderingsparametre ---
     # Grænser for samlet risikoscore

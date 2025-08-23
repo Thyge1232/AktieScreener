@@ -2,7 +2,7 @@
 import streamlit as st
 import pandas as pd
 from core.favorites_manager import load_favorites, save_favorites
-from core.data.api_client import get_data_for_favorites
+from core.data.client import get_data_for_favorites
 # --- BRUG af utils ---
 from utils.validation import safe_aggrid_display # Importeret fra utils
 from utils.aggrid_helpers import ( # Importeret fra utils

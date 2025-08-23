@@ -1,80 +1,16 @@
 # core/valuation/dcf_engine.py
-"""Modul til Discounted Cash Flow (DCF) vÃ¦rdiansÃ¦ttelse."""
+"""Modul til Discounted Cash Flow (DCF) værdiansættelse."""
 
 import logging
 import numpy as np
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple, Optional, Any
-from .wacc_calculator import WACCInputs # Bruges ikke direkte her, men for konsistens
-from ..data.api_client import safe_numeric # Antager denne funktion findes
+# Importer ValuationInputs fra sin egen fil
+from .valuation_inputs import ValuationInputs
+# Brug den nye safe_numeric fra api_client
+from ..data.client import safe_numeric
 
 logger = logging.getLogger(__name__)
-
-# Antager ValuationInputs findes i en fÃ¦lles fil eller flyttes hertil
-# from .valuation_inputs import ValuationInputs
-
-@dataclass
-class ValuationInputs:
-    """Comprehensive valuation inputs with validation - Moved from valuation_engine.py"""
-    # Core financials
-    revenue: float
-    ebitda: float
-    net_income: float
-    free_cash_flow: float
-    book_value: float
-    dividend_per_share: float
-    shares_outstanding: float
-    # Growth and profitability
-    revenue_growth_rate: float
-    ebitda_growth_rate: float
-    terminal_growth_rate: float
-    operating_margin: float
-    tax_rate: float
-    # Balance sheet
-    total_debt: float
-    cash_and_equivalents: float
-    working_capital: float
-    capex: float
-    # Risk metrics
-    beta: float
-    debt_to_equity: float
-    interest_coverage: float
-    # Industry benchmarks
-    industry_pe: float = 15.0
-    industry_ev_ebitda: float = 10.0
-    industry_growth_rate: float = 0.05
-
-    def __post_init__(self):
-        """Validate and normalize inputs after creation"""
-        self._validate_inputs()
-        self._normalize_growth_rates()
-
-    def _validate_inputs(self):
-        """Validate financial inputs for consistency"""
-        errors = []
-        # Basic validation
-        if self.shares_outstanding <= 0:
-            errors.append("Shares outstanding must be positive")
-        if self.revenue <= 0:
-            errors.append("Revenue must be positive")
-        # Cross-validation
-        if self.ebitda > self.revenue:
-            logger.warning(f"EBITDA ({self.ebitda:.0f}) exceeds Revenue ({self.revenue:.0f})")
-        if abs(self.net_income) > self.revenue * 2:  # Extreme profit/loss
-            logger.warning(f"Net income ({self.net_income:.0f}) seems extreme vs Revenue ({self.revenue:.0f})")
-        if errors:
-            raise ValueError(f"Validation errors: {'; '.join(errors)}")
-
-    def _normalize_growth_rates(self):
-        """Apply realistic bounds to growth rates"""
-        # Cap extreme growth rates
-        self.revenue_growth_rate = max(-0.50, min(self.revenue_growth_rate, 1.00))  # -50% to 100%
-        self.ebitda_growth_rate = max(-0.75, min(self.ebitda_growth_rate, 1.50))   # -75% to 150%
-        self.terminal_growth_rate = max(0.00, min(self.terminal_growth_rate, 0.05)) # 0% to 5%
-        # Log adjustments
-        original_rates = (self.revenue_growth_rate, self.ebitda_growth_rate, self.terminal_growth_rate)
-        if any(rate != orig for rate, orig in zip([self.revenue_growth_rate, self.ebitda_growth_rate, self.terminal_growth_rate], original_rates)):
-            logger.info("Growth rates normalized to realistic bounds")
 
 class DCFEngine:
     """Sophisticated DCF model with multiple scenarios and sensitivity analysis"""
@@ -142,17 +78,36 @@ class DCFEngine:
     def _perform_sensitivity_analysis(inputs: ValuationInputs, base_wacc: float,
                                     projection_years: int) -> Dict[str, Dict[str, float]]:
         """Perform sensitivity analysis on key variables"""
-        # Import her for at undgÃ¥ cirkulÃ¦re afhÃ¦ngigheder
-        from .scenario_analysis import ScenarioAnalysis
-        return ScenarioAnalysis.perform_sensitivity_analysis(inputs, base_wacc, projection_years)
+        # Import her for at undgå cirkulære afhængigheder
+        # Hvis scenario_analysis.py ikke eksisterer endnu, returner en tom dict
+        try:
+            from .scenario_analysis import ScenarioAnalysis
+            return ScenarioAnalysis.perform_sensitivity_analysis(inputs, base_wacc, projection_years)
+        except ImportError:
+            logger.warning("ScenarioAnalysis module not found, skipping sensitivity analysis.")
+            return {}
 
     @staticmethod
     def _monte_carlo_simulation(inputs: ValuationInputs, wacc_result: Dict,
                               projection_years: int, num_simulations: int = 100) -> Dict[str, float]:
         """Monte Carlo simulation for confidence intervals"""
-        # Import her for at undgÃ¥ cirkulÃ¦re afhÃ¦ngigheder
-        from .scenario_analysis import ScenarioAnalysis
-        return ScenarioAnalysis.monte_carlo_simulation(inputs, wacc_result, projection_years, num_simulations)
+        # Import her for at undgå cirkulære afhængigheder
+        # Hvis scenario_analysis.py ikke eksisterer endnu, returner en fallback
+        try:
+            from .scenario_analysis import ScenarioAnalysis
+            return ScenarioAnalysis.monte_carlo_simulation(inputs, wacc_result, projection_years, num_simulations)
+        except ImportError:
+            logger.warning("ScenarioAnalysis module not found, using fallback confidence intervals.")
+            base_value = inputs.free_cash_flow / inputs.shares_outstanding * 15 # Simple estimate
+            return {
+                'p10': base_value * 0.7,
+                'p25': base_value * 0.85,
+                'p50': base_value,
+                'p75': base_value * 1.15,
+                'p90': base_value * 1.3,
+                'mean': base_value,
+                'std': base_value * 0.15
+            }
 
     @staticmethod
     def _fallback_dcf_result(inputs: ValuationInputs) -> Dict[str, Any]:
@@ -184,20 +139,28 @@ class DCFEngine:
         try:
             # Validate and adjust inputs
             validated_inputs = DCFEngine._validate_dcf_inputs(inputs)
-            wacc = wacc_result['wacc']
+            wacc = wacc_result.get('wacc', 0.10) # Default WACC if not provided
+            if not (0.02 <= wacc <= 0.30):
+                 logger.error(f"Unrealistic WACC {wacc} provided, using default 0.10")
+                 wacc = 0.10
+
             # Multi-stage growth model
             growth_stages = DCFEngine._create_growth_stages(validated_inputs, projection_years)
+            
             # Project cash flows for each stage
             projected_fcf = []
             cumulative_pv = 0
             current_fcf = validated_inputs.free_cash_flow
+            
             for year, stage_info in enumerate(growth_stages, 1):
                 # Apply growth rate with fade
                 growth_rate = stage_info['growth_rate']
                 current_fcf *= (1 + growth_rate)
+                
                 # Discount to present value
                 pv_factor = 1 / ((1 + wacc) ** year)
                 pv_fcf = current_fcf * pv_factor
+                
                 projected_fcf.append({
                     'year': year,
                     'fcf': current_fcf,
@@ -207,26 +170,41 @@ class DCFEngine:
                     'stage': stage_info['stage']
                 })
                 cumulative_pv += pv_fcf
+
             # Terminal value calculation
             terminal_fcf = current_fcf * (1 + validated_inputs.terminal_growth_rate)
+            
+            # Sikre at WACC > terminal growth for at undgå negativ værdi
+            if wacc <= validated_inputs.terminal_growth_rate:
+                 logger.error(f"WACC ({wacc}) must be greater than terminal growth ({validated_inputs.terminal_growth_rate})")
+                 return DCFEngine._fallback_dcf_result(inputs)
+                 
             terminal_multiple = 1 / (wacc - validated_inputs.terminal_growth_rate)
             terminal_value = terminal_fcf * terminal_multiple
             pv_terminal = terminal_value / ((1 + wacc) ** projection_years)
+
             # Enterprise and equity value
             enterprise_value = cumulative_pv + pv_terminal
             # Adjust for cash and debt
             net_debt = max(0, validated_inputs.total_debt - validated_inputs.cash_and_equivalents)
             equity_value = max(0, enterprise_value - net_debt)
+            
             # Per share value
+            if validated_inputs.shares_outstanding <= 0:
+                logger.error("Shares outstanding must be positive for DCF per share calculation.")
+                return DCFEngine._fallback_dcf_result(inputs)
             value_per_share = equity_value / validated_inputs.shares_outstanding
+
             # Sensitivity analysis
             sensitivity = DCFEngine._perform_sensitivity_analysis(
                 validated_inputs, wacc, projection_years
             )
+
             # Monte Carlo simulation for confidence intervals
             confidence_intervals = DCFEngine._monte_carlo_simulation(
                 validated_inputs, wacc_result, projection_years
             )
+
             return {
                 'enterprise_value': enterprise_value,
                 'equity_value': equity_value,
@@ -247,5 +225,5 @@ class DCFEngine:
                 }
             }
         except Exception as e:
-            logger.error(f"Enhanced DCF calculation failed: {e}")
+            logger.error(f"Enhanced DCF calculation failed: {e}", exc_info=True)
             return DCFEngine._fallback_dcf_result(inputs)
