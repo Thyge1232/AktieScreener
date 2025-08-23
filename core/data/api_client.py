@@ -1023,3 +1023,5 @@ def display_performance_dashboard():
             st.success("Cache cleared successfully!")
         except Exception as e:
             st.error(f"Error clearing cache: {e}")
+
+safe_numeric = AdvancedDataValidator.safe_numeric
