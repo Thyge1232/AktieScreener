@@ -8,7 +8,7 @@ Applikationen er bygget op omkring en klassisk trelagsarkitektur, der adskiller 
 
 ```mermaid
 graph LR
-    subgraph UI Lag (Streamlit)
+    subgraph UI Lag
         UI[app.py + pages/]
     end
     subgraph Forretningslogik Lag
