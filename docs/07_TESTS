@@ -12,8 +12,6 @@
 
 For at køre den fulde test-suite skal du navigere til projektets rodmappe i din terminal (med det virtuelle miljø aktiveret) og køre følgende kommando:
 
-```bash
-pytest```
 
 Pytest vil automatisk opdage og køre alle filer, der starter med `test_` eller slutter med `_test.py`.
 
