@@ -1,29 +1,35 @@
+Selvfølgelig. Her er en opdateret og forbedret version af `INSTALLATION.md`.
+
+Ændringerne er designet til at gøre guiden endnu mere brugervenlig og robust for en person, der sætter projektet op for første gang. Der er tilføjet flere forklaringer og et afsnit om fejlfinding.
+
+---
+
 # 🔧 Installationsguide til Investment Screener
 
-Denne guide beskriver, hvordan du sætter projektet op på din lokale maskine.
+Denne guide beskriver, hvordan du sætter projektet op på din lokale maskine fra start til slut.
 
 ## Forudsætninger
 
-*   **Python:** Du skal have Python 3.8 eller nyere installeret.
-*   **Git:** Nødvendigt for at klone repositoriet.
+*   **Python:** Du skal have Python 3.8 eller nyere installeret. Du kan downloade det fra [python.org](https://www.python.org/).
+*   **Git:** Nødvendigt for at klone projektkoden. Du kan downloade det fra [git-scm.com](https://git-scm.com/).
 *   **Adgang til en terminal/kommandoprompt.**
 
 ## Trin-for-trin Installation
 
 ### 1. Klon Repositoriet
 
-Åbn din terminal og kør følgende kommando for at downloade projektkoden:
+Åbn din terminal, naviger til den mappe, hvor du vil gemme projektet, og kør følgende kommando:
 ```bash
 git clone <din-repository-url>
 cd <repository-mappe>
 ```
 
-### 2. Opret et Virtuelt Miljø (Anbefalet)
+### 2. Opret et Virtuelt Miljø (Stærkt Anbefalet)
 
-Det er god praksis at isolere projektets afhængigheder i et virtuelt miljø.
+For at isolere projektets afhængigheder og undgå konflikter med andre Python-projekter, bør du oprette et virtuelt miljø.
 
 ```bash
-# Opret et miljø
+# Opret et miljø i en mappe ved navn .venv
 python -m venv .venv
 
 # Aktiver miljøet
@@ -31,11 +37,11 @@ python -m venv .venv
 .venv\Scripts\activate
 # På macOS/Linux:
 source .venv/bin/activate
-```
+```**Vigtigt:** Sørg for, at dit virtuelle miljø er aktivt for alle efterfølgende kommandoer. Du vil typisk se `(.venv)` i starten af din kommandolinje.
 
 ### 3. Installer Nødvendige Pakker
 
-Projektet bruger en række Python-biblioteker. Opret en fil ved navn `requirements.txt` i projektets rod med følgende indhold:
+Projektet afhænger af en række tredjepartsbiblioteker. Opret en fil ved navn `requirements.txt` i projektets rod med følgende indhold:
 
 ```
 # requirements.txt
@@ -47,17 +53,17 @@ streamlit-aggrid
 yfinance
 ```
 
-Installér derefter disse pakker ved at køre:
+Installér derefter alle pakkerne på én gang ved at køre:
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Konfiguration af API-nøgle
+### 4. Konfiguration af API-nøgle (Valgfrit)
 
-Funktionerne til værdiansættelse og backtesting kræver en API-nøgle fra **Alpha Vantage**.
+Funktionerne til **værdiansættelse** kræver en API-nøgle fra **Alpha Vantage**. Hvis du kun vil bruge screener-delen, kan du springe dette trin over.
 
 1.  Få en gratis API-nøgle på [alphavantage.co](https://www.alphavantage.co/support/#api-key).
-2.  Opret en mappe ved navn `.streamlit` i roden af dit projekt.
+2.  I roden af dit projekt, opret en mappe ved navn `.streamlit`.
 3.  Inde i `.streamlit`-mappen, opret en fil ved navn `secrets.toml`.
 4.  Tilføj følgende linje til `secrets.toml` og erstat med din egen nøgle:
 
@@ -65,16 +71,10 @@ Funktionerne til værdiansættelse og backtesting kræver en API-nøgle fra **Al
     ALPHA_VANTAGE_API_KEY = "DIN_API_NØGLE_HER"
     ```
 
-Streamlit vil automatisk indlæse denne nøgle, når applikationen starter.
+### 5. Klargør Konfigurationsfiler
 
-### 5. Opret Konfigurationsmapper og -filer
+Applikationens screeningslogik er styret af JSON-filer. Sørg for, at den korrekte mappestruktur findes i projektets rod, og at de medfølgende JSON-filer er placeret korrekt:
 
-Applikationens screeningslogik er styret af JSON-filer. Opret den korrekte mappestruktur i projektets rod:
-
-1.  Opret en mappe ved navn `config`.
-2.  Inde i `config`, opret to undermapper: `mappings` og `strategies`.
-
-Din struktur skal se således ud:
 ```
 <projekt-rod>/
 ├── config/
@@ -85,7 +85,6 @@ Din struktur skal se således ud:
 │       └── multibagger_profiles.json
 └── ... (andre filer)
 ```
-Placer de relevante JSON-filer i disse mapper.
 
 ### 6. Klargøring af Datafil
 
@@ -100,8 +99,15 @@ Applikationen er designet til at fungere med data eksporteret fra [Finviz.com](h
 
 ## Kør Applikationen
 
-Når alle ovenstående trin er fuldført, kan du starte applikationen:
+Når alle ovenstående trin er fuldført, kan du starte applikationen fra din terminal:
 
 ```bash
 streamlit run app.py
 ```
+Streamlit vil starte en lokal webserver og åbne applikationen i din standardbrowser.
+
+## Fejlfinding
+
+*   **`ModuleNotFoundError`**: Dette betyder typisk, at dit virtuelle miljø ikke er aktivt, eller at `pip install -r requirements.txt` ikke blev kørt korrekt. Prøv at aktivere miljøet igen og køre installationskommandoen.
+*   **Fejl ved indlæsning af konfigurationsfil**: Dobbelttjek, at `config`-mappen og dens undermapper er stavet korrekt og ligger i projektets rod.
+*   **API-nøgle virker ikke**: Sørg for, at filen hedder `secrets.toml` (ikke `.txt`) og er placeret korrekt i `.streamlit`-mappen.

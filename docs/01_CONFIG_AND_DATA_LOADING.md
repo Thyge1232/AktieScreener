@@ -1,42 +1,85 @@
-# 1. Konfiguration og Dataloading
+# Projektdokumentation: Konfigurationslag
 
-Dette dokument beskriver den indledende fase af applikationens livscyklus: hvordan den indlæser sine regler (konfiguration) og sine rådata (CSV-fil).
+## 1. Overordnet Projektdokumentation
 
-## Konfigurations-Framework (`config_loader.py`)
+### Projektoversigt
 
-Al logik for screeningerne er styret af eksterne JSON-filer. Dette er et bevidst designvalg for at adskille logik fra kode, hvilket gør det nemt at tilføje eller justere strategier.
+*   **Formål:** At levere et robust og centraliseret system til indlæsning af applikationens konfiguration. Dette lag adskiller strategisk logik (defineret i JSON-filer) fra eksekveringskoden, hvilket gør det nemt at tilføje, fjerne eller justere investeringsstrategier uden at ændre i Python-koden.
+*   **Anvendelsesområde:** Anvendes ved opstart af applikationen og af screenings-modulerne til at hente de nødvendige profiler og mappings.
+*   **Teknologistak:** Python 3.9+, Streamlit (for caching), JSON.
 
-*   **Implementering:** `config_loader.py` indeholder funktioner, der bruger `os.getcwd()` og `os.path.join()` til at bygge pålidelige stier til `config/`-mappen. Hver indlæsningsfunktion (`load_value_config`, etc.) er dekoreret med `@st.cache_data`, hvilket sikrer, at fil-I/O kun sker én gang pr. session, hvilket er ekstremt effektivt.
+## 2. Dokumentation pr. Fil
 
-*   **Struktur af en Screeningsprofil (`.json`):**
-    En profil består af `description`, `min_score`, `pre_filters` og `filters`. Et `filter`-objekt er kernen:
-    ```json
-    "roic_range": {
-      "data_key": "Return on Invested Capital",
-      "type": "range",
-      "description": "...",
-      "normalization": "sector_median_relative",
-      "ranges": [
-        {"min": 1.6, "max": null, "points": 33}
-      ]
-    }
+### `config_loader.py`
+
+*   **Formål:** Fungerer som den centrale "loader" for alle JSON-baserede konfigurationsfiler. Den håndterer filstier, indlæsning og caching af konfigurationsdata for at sikre optimal ydeevne.
+*   **Nøglekomponenter:**
+    *   **Funktion:** `load_config(file_path)`
+        *   En generisk, cachet funktion (`@st.cache_data`), der kan indlæse enhver JSON-fil fra `config/`-mappen.
+        *   Implementerer robust fejlhåndtering, der viser en klar fejlmeddelelse i UI'et, hvis en fil ikke kan findes eller parses.
+    *   **Specialiserede funktioner:**
+        *   `load_value_config()`: En bekvemmelighedsfunktion, der kalder `load_config` med den specifikke sti til value-profilerne.
+        *   `load_multibagger_config()`: Tilsvarende funktion for multibagger-profilerne.
+        *   `load_region_mappings()`: Tilsvarende funktion for region-mappings.
+*   **Afhængigheder:**
+    *   **Interne Moduler:** Ingen.
+    *   **Eksterne Biblioteker:** `json`, `os`, `streamlit`.
+*   **Eksempel på Anvendelse:**
+    ```python
+    # I pages/value_screener.py
+    from config_loader import load_value_config
+
+    # Indlæs alle value-profiler (resultatet caches automatisk)
+    config_vs = load_value_config()
+    selected_profile = config_vs.get("Kvalitet (Quality Value)")
     ```
-    -   `data_key`: Den præcise kolonneoverskrift fra Finviz CSV'en.
-    -   `type`: Definerer hvilken evaluerings-algoritme fra `core/screening/utils.py`, der skal anvendes (`range`, `scaled`, `hybrid_range_scaled`).
-    -   `description`: Tekst, der vises som tooltip i UI'et.
-    -   `normalization`: (Valgfri) Angiver, om der skal anvendes sektor-normalisering. `sector_median_relative` betyder, at højere værdier er bedre, mens `_inverse` betyder, at lavere værdier er bedre.
-    -   `ranges`/`min_value`/`max_value`: De specifikke parametre, som evaluerings-algoritmen bruger.
 
-## Rådata-behandling (`core/data/csv_processor.py`)
+### `config/mappings/region_mappings.json`
 
-Dette modul er ansvarligt for at tage den potentielt "beskidte" CSV-fil fra Finviz og omdanne den til en ren, struktureret og fuldt numerisk DataFrame.
+*   **Formål:** Definerer en simpel mapping mellem et overordnet regionsnavn (f.eks. "EU & UK") og en liste af specifikke lande, som Finviz bruger i sin `Country`-kolonne.
+*   **Struktur:**
+    *   En flad JSON-objekt, hvor hver nøgle er et regionsnavn, og værdien er en liste af strenge (lande).
+*   **Anvendelse:** Bruges af screener-siderne til at filtrere den primære DataFrame baseret på brugerens valg af regioner i sidebaren.
 
-*   **Implementering:** Funktionen `process_finviz_csv` er den centrale arbejdshest. Den er også dekoreret med `@st.cache_data` for maksimal ydeevne.
-*   **Rensningstrin:**
-    1.  **Indlæsning:** Bruger `pd.read_csv` med `on_bad_lines='skip'` og `quoting=1` for at håndtere Finviz' til tider inkonsistente formatering.
-    2.  **Kolonne-rensning:** Fjerner overflødige anførelsestegn og mellemrum fra kolonnenavne.
-    3.  **Parsing af Strenge:**
-        -   `parse_market_cap`: Konverterer strenge som "150B" til det fulde tal `150_000_000_000`.
-        -   **Procent-kolonner:** Identificerer dynamisk kolonner, der indeholder procenter, fjerner '%' tegnet, og dividerer med 100 for at få en float-repræsentation (f.eks. `0.25`).
-    4.  **Generel Numerisk Konvertering:** Bruger `pd.to_numeric(errors='coerce')` på alle relevante kolonner. Dette er en robust metode, der automatisk erstatter alle ikke-numeriske værdier (som f.eks. '-') med `NaN`, som Pandas' matematiske operationer kan håndtere korrekt.
-    5.  **Beregning af Afledte Metrikker:** Beregner nye kolonner som `Price vs. Book/sh` direkte, så de er klar til brug i screeningerne.
+### `config/strategies/value_screener_profiles.json` og `config/strategies/multibagger_profiles.json`
+
+*   **Formål:** Disse filer er hjertet i screeningsmotorens logik. De definerer de specifikke regler, vægte og beskrivelser for hver enkelt investeringsstrategi.
+*   **Struktur (for hver profil):**
+    *   **`description`**: En brugervenlig tekst, der forklarer strategiens filosofi.
+    *   **`min_score`**: En tærskelværdi for, hvor høj en score en aktie skal have for at blive vist i resultaterne.
+    *   **`pre_filters`**: En liste af simple, binære filtre (f.eks. `Market Cap > 1B`), der anvendes *før* den tunge scoring for at forbedre ydeevnen.
+    *   **`filters`**: En dictionary, der indeholder de detaljerede scoringsregler. Hver regel specificerer:
+        *   **`data_key`**: Navnet på kolonnen i DataFrame'en, der skal evalueres.
+        *   **`type`**: Typen af evaluering (`range`, `scaled`, `hybrid_range_scaled`), som mapper direkte til en `evaluate_*` funktion i `utils.py`.
+        *   **`description`**: En tooltip-tekst til UI'et.
+        *   **`normalization`**: (Valgfri) Angiver, om værdien skal sektor-normaliseres (`sector_median_relative` eller `sector_median_relative_inverse`).
+        *   **Specifikke parametre**: Nøgler som `ranges`, `min_value`, `max_value`, etc., der er nødvendige for den valgte `type`.
+*   **Anvendelse:** Indlæses af de respektive screener-sider og bruges til at styre hele screenings- og scoringsprocessen dynamisk.
+
+## 3. Projektstruktur og Relationer
+
+### Mappestruktur
+
+Konfigurationsfilerne er organiseret i en dedikeret `config/`-mappe med undermapper for at skabe en logisk struktur.
+
+```
+.
+├── config_loader.py          # Den centrale loader
+└── config/
+    ├── mappings/
+    │   └── region_mappings.json
+    └── strategies/
+        ├── multibagger_profiles.json
+        └── value_screener_profiles.json
+```
+
+### Arkitektonisk Overblik
+
+Dette lag er designet til at være fuldstændig afkoblet fra resten af applikationen. `config_loader.py` fungerer som den eneste bro mellem de statiske JSON-filer og den dynamiske Python-kode.
+
+1.  **UI-kald:** En side som `pages/value_screener.py` kalder `load_value_config()`.
+2.  **Loader:** `config_loader.py` tjekker først Streamlits cache. Hvis data ikke er cachet, læser den den relevante JSON-fil fra `config/strategies/`-mappen.
+3.  **Retur:** Den parsede dictionary returneres til UI-laget.
+4.  **Anvendelse:** UI-laget bruger dictionary'en til at bygge sidebar-kontroller (sliders, tooltips) og sender den derefter videre til kerne-screeningsfunktionen (f.eks. `screen_stocks_value`), som bruger den til at udføre selve screeningen.
+
+Denne arkitektur gør det muligt for en ikke-teknisk bruger at redigere eller tilføje nye screeningsstrategier ved blot at ændre i JSON-filerne, uden behov for at røre Python-koden.

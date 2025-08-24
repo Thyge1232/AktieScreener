@@ -1,0 +1,90 @@
+# Projektdokumentation: Test Suite
+
+## 1. Overordnet Projektdokumentation
+
+### Projektoversigt
+
+*   **Formål:** At sikre kodens kvalitet, korrekthed og stabilitet for Investment Screener-applikationen. Test-suiten validerer, at både individuelle funktioner (unit tests) og samspillet mellem dem (integration tests) fungerer som forventet. Formålet er at forhindre regressioner (at gamle fejl genopstår) og give udviklere tryghed ved at refaktorere eller tilføje ny kode.
+*   **Anvendelsesområde:** Disse tests dækker kernefunktionaliteten i `core/data/` og `core/screening/` lagene. De køres typisk af udviklere før et commit eller i et automatiseret CI/CD-miljø.
+*   **Teknologistak:** Python 3.9+, Pytest, Pandas, NumPy.
+
+### Kørsel af Tests
+
+For at køre den fulde test-suite skal du navigere til projektets rodmappe i din terminal (med det virtuelle miljø aktiveret) og køre følgende kommando:
+
+```bash
+pytest```
+
+Pytest vil automatisk opdage og køre alle filer, der starter med `test_` eller slutter med `_test.py`.
+
+## 2. Dokumentation pr. Fil
+
+### `tests/data/test_csv_processor.py`
+
+*   **Formål:** At validere al funktionalitet i `core/data/csv_processor.py`. Dette inkluderer både de små hjælpefunktioner og den primære funktion, der behandler den fulde CSV-fil.
+*   **Nøglekomponenter (Tests):**
+    *   **Unit Test:** `test_parse_market_cap`
+        *   Bruger `pytest.mark.parametrize` til effektivt at teste `parse_market_cap`-funktionen mod en række forskellige input-formater (f.eks. "2.5B", "500M", tal uden suffix, og ugyldige strenge som "-").
+    *   **Unit Test:** `test_find_column_name`
+        *   Tester, at `find_column_name`-funktionen korrekt kan identificere et eksisterende kolonnenavn fra en liste af mulige navne og returnere `None`, hvis ingen findes.
+    *   **Integration Test:** `test_process_csv_with_correctly_formatted_input`
+        *   Dette er en mere omfattende test, der validerer hele `process_finviz_csv`-funktionen.
+        *   **Fixture:** Bruger en `pytest.fixture` (`correctly_formatted_csv_fixture`) til at skabe en realistisk, in-memory CSV-fil. Dette sikrer, at testen er selvstændig og ikke afhængig af en ekstern fil.
+        *   **Valideringer:** Testen bekræfter systematisk, at den returnerede DataFrame er korrekt ved at tjekke:
+            1.  At data er indlæst korrekt.
+            2.  At numeriske værdier og procenter er parset korrekt til `float`.
+            3.  At manglende værdier (f.eks. "-") bliver konverteret til `NaN`.
+            4.  At den afledte metrik (`Price vs. Book/sh`) beregnes korrekt og håndterer division med nul.
+            5.  At de endelige datatyper for kolonnerne er korrekte.
+*   **Afhængigheder:**
+    *   **Interne Moduler:** `core.data.csv_processor`.
+    *   **Eksterne Biblioteker:** `pytest`, `pandas`, `numpy`, `io`.
+
+### `tests/screening/test_utils.py`
+
+*   **Formål:** At udføre grundige unit tests af de kerne-evalueringsfunktioner, der findes i `core/screening/utils.py`. Da disse funktioner er de fundamentale byggeblokke i hele screeningsmotoren, er deres korrekthed afgørende.
+*   **Nøglekomponenter (Tests):**
+    *   **Tests for `evaluate_condition`:**
+        *   Dækker en række logiske operatorer (`lt`, `gte`, `between`, `eq`) for at sikre, at den binære filtrering fungerer korrekt.
+        *   Inkluderer tests for edge cases som streng-sammenligning (case-insensitiv) og håndtering af `NaN`-værdier.
+    *   **Tests for `evaluate_range_filter`:**
+        *   Validerer, at point tildeles korrekt baseret på, om en værdi falder inden for, uden for, eller på grænsen af de definerede intervaller.
+        *   Tester også "åbne" intervaller (hvor kun en `min`- eller `max`-grænse er defineret).
+    *   **Tests for `evaluate_scaled_filter`:**
+        *   En omfattende test-suite, der validerer den lineære skaleringslogik.
+        *   Den bekræfter, at funktionen returnerer de korrekte point ved minimums- og maksimumsgrænserne samt et midtpunkt.
+        *   Validerer "clamping"-adfærden, hvor værdier uden for intervallet klemmes fast til grænserne.
+        *   Inkluderer en vigtig test for "omvendt skalering" (hvor en lavere input-værdi giver en højere pointscore, f.eks. for P/E).
+*   **Afhængigheder:**
+    *   **Interne Moduler:** `core.screening.utils`.
+    *   **Eksterne Biblioteker:** `pytest`, `pandas`, `numpy`.
+
+## 3. Projektstruktur og Relationer
+
+### Mappestruktur
+
+Test-suiten er organiseret i en `tests/`-mappe, der spejler strukturen af `core/`-mappen. Dette er en standardkonvention, der gør det nemt at finde de tests, der hører til en specifik del af kildekoden.
+
+```
+.
+├── core/
+│   ├── data/
+│   │   └── csv_processor.py
+│   └── screening/
+│       └── utils.py
+└── tests/
+    ├── data/
+    │   └── test_csv_processor.py  # Tester kode i core/data/
+    └── screening/
+        └── test_utils.py          # Tester kode i core/screening/
+```
+
+### Arkitektonisk Overblik
+
+Teststrategien kombinerer to typer af tests for at opnå en robust dækning:
+
+1.  **Unit Tests:** Disse tests er designet til at være små, hurtige og isolerede. De fokuserer på en enkelt funktion eller metode ad gangen. Eksempler inkluderer `test_parse_market_cap` og alle tests i `test_utils.py`. Deres formål er at verificere, at de mindste byggeblokke i systemet fungerer korrekt.
+
+2.  **Integration Tests:** Disse tests er mere komplekse og verificerer, at flere komponenter fungerer korrekt sammen. `test_process_csv_with_correctly_formatted_input` er et godt eksempel, da den tester samspillet mellem `pd.read_csv`, `parse_market_cap` og den overordnede behandlingslogik i `process_finviz_csv`.
+
+Ved at bruge `pytest`-frameworket udnyttes avancerede features som **fixtures** (til at skabe genbrugeligt test-setup) og **parametrization** (til at køre den samme test med mange forskellige input), hvilket resulterer i en mere effektiv og vedligeholdelsesvenlig test-suite.
