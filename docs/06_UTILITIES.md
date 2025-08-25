@@ -1,4 +1,3 @@
-Her er den tekniske dokumentation for de angivne utility-filer, udformet i henhold til den specificerede prompt.
 
 # Projektdokumentation: Utilities & Core Services
 

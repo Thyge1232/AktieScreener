@@ -1,6 +1,4 @@
-Selvfølgelig. Her er en opdateret og forbedret version af `INSTALLATION.md`.
 
-Ændringerne er designet til at gøre guiden endnu mere brugervenlig og robust for en person, der sætter projektet op for første gang. Der er tilføjet flere forklaringer og et afsnit om fejlfinding.
 
 ---
 
