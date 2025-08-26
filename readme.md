@@ -1,5 +1,6 @@
 # 📊 Investment Screener
 
+
 **Investment Screener** er en web-applikation bygget med Streamlit, designet til at analysere og screene aktier baseret på data fra Finviz. Applikationen giver investorer mulighed for at finde potentielle investeringer ved hjælp af to primære strategier: **Value Investing** og **Multibagger (Vækst) Investing**.
 
 Værktøjet er bygget til at være interaktivt og fleksibelt, så brugeren kan tilpasse screeningskriterier, gemme favoritaktier til videre analyse og endda udføre dybdegående værdiansættelser.
@@ -14,6 +15,14 @@ Værktøjet er bygget til at være interaktivt og fleksibelt, så brugeren kan t
 *   **Dybdegående Værdiansættelse:** Favoritsiden henter live kursdata og kan udføre en avanceret **DCF-baseret værdiansættelse** (Discounted Cash Flow), komplet med WACC-beregning og scenarieanalyse (Best/Base/Worst Case).
 *   **Interaktive Tabeller:** Alle resultater præsenteres i interaktive tabeller, hvor du kan sortere, filtrere, tilføje/fjerne favoritter og klikke dig direkte videre til Finviz.
 *   **Robust Datavalidering:** Systemet tjekker automatisk, om den uploadede CSV-fil indeholder de nødvendige kolonner for den valgte screeningsprofil, og advarer om potentielle datakvalitetsproblemer.
+
+## Teknologistak
+
+*   **Frontend:** [Streamlit](https://streamlit.io/)
+*   **Dataanalyse:** [Pandas](https://pandas.pydata.org/), [NumPy](https://numpy.org/)
+*   **Interaktive Tabeller:** [streamlit-aggrid](https://github.com/PablocFonseca/streamlit-aggrid)
+*   **Datavisualisering:** [Plotly](https://plotly.com/python/)
+*   **Ekstern Data:** [yfinance](https://github.com/ranaroussi/yfinance) (som fallback for API-data)
 
 ## Hurtig Start
 
@@ -32,7 +41,11 @@ Værktøjet er bygget til at være interaktivt og fleksibelt, så brugeren kan t
     numpy
     plotly
     streamlit-aggrid
+<<<<<<< HEAD
     yfinance  
+=======
+    yfinance
+>>>>>>> ff8234e9f2e4e33f3a08729290b9480581869560
 
     # Kommando i terminalen
     pip install -r requirements.txt
@@ -63,4 +76,12 @@ Værktøjet er bygget til at være interaktivt og fleksibelt, så brugeren kan t
     ```bash
     streamlit run app.py
     ```
-Åbn den URL, der vises i din terminal, i en browser for at starte screeneren.
+    Åbn den URL, der vises i din terminal, i en browser for at starte screeneren.
+
+## Bidrag
+
+Bidrag er velkomne! Hvis du har forslag til forbedringer, nye funktioner eller har fundet en fejl, er du velkommen til at oprette en "Issue" eller en "Pull Request" i dette repository.
+
+## Licens
+
+Dette projekt er licenseret under [MIT License](LICENSE.md).

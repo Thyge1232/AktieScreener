@@ -1,41 +1,103 @@
-# 5. UI Implementering
+Her er den tekniske dokumentation for UI-laget (`app.py` og `pages/`), udformet i henhold til den specificerede prompt.
 
-Dette dokument beskriver, hvordan brugergrænsefladen er bygget ved hjælp af Streamlit, og hvordan de interaktive komponenter er implementeret.
+# Projektdokumentation: Streamlit User Interface
 
-## Applikationens Struktur (`app.py`)
+## 1. Overordnet Projektdokumentation
 
-`app.py` fungerer som applikationens indgangspunkt og primære router.
+### Projektoversigt
 
-*   **State Management:**
-    -   Applikationen er stærkt afhængig af `st.session_state` for at opretholde en vedvarende tilstand mellem brugerinteraktioner og "sider".
-    -   **Nøglevariabler:**
-        -   `processed_dataframe`: Indeholder de rensede CSV-data. Initialiseres én gang ved start.
-        -   `favorites`: En liste af ticker-strenge, der synkroniseres på tværs af alle moduler.
-        -   `force_rerender_count`: En tæller, der bruges til at tvinge AgGrid-tabellen til at genindlæse fuldstændigt ved at give den en ny, unik `key`. Dette er en kritisk teknik for at sikre, at UI'et afspejler ændringer i favorit-status.
+*   **Formål:** At levere en interaktiv, web-baseret brugergrænseflade (UI) for en finansiel analyse- og screeningsapplikation. UI'et muliggør data-upload, konfiguration af screeningsstrategier, visning af resultater og administration af en personlig favoritliste.
+*   **Anvendelsesområde:** Dette er frontenden for hele applikationen, bygget udelukkende med Streamlit-frameworket. Det fungerer som det primære interaktionspunkt for brugeren.
+*   **Teknologistak:** Python 3.9+, Streamlit, Pandas, Plotly, st-aggrid.
 
-*   **Navigation/Routing:**
-    -   Applikationen bruger **ikke** Streamlits indbyggede multipage-app funktionalitet.
-    -   I stedet bruges en simpel `if/elif`-struktur baseret på valget i `st.sidebar.selectbox`.
-    -   Den valgte sides kode bliver dynamisk eksekveret ved hjælp af `exec(open('pages/filnavn.py').read())`.
-    -   **Fordel:** Denne metode sikrer, at alle "sider" deler den samme globale `st.session_state` problemfrit, hvilket er ideelt for denne type tæt integrerede applikation.
+## 2. Dokumentation pr. Fil
 
-## Side-implementeringer (`pages/`)
+### `app.py`
 
-Hver fil i `pages/`-mappen er ansvarlig for at tegne en specifik side. De følger et fælles mønster:
+*   **Formål:** Fungerer som applikationens centrale indgangspunkt (entrypoint) og router. Den håndterer den overordnede sidestruktur, navigation og initialisering af den globale `session_state`.
+*   **Nøglekomponenter:**
+    *   **Session State Initialisering:**
+        *   Ved første kørsel initialiseres `st.session_state` med nøglevariabler som `processed_dataframe`, `favorites`, og `loaded_csv_filename`.
+        *   Forsøger automatisk at indlæse en enkelt `.csv`-fil fra rodmappen for at strømline opstartsprocessen.
+    *   **Navigation (Routing):**
+        *   Bruger et `st.sidebar.selectbox` til at styre, hvilken "side" der vises.
+        *   Implementerer en simpel routing-mekanisme ved hjælp af en `if/elif`-struktur, der dynamisk eksekverer koden fra den relevante fil i `pages/`-mappen via `exec(open(...).read())`. Denne metode sikrer, at alle sider deler den samme `session_state`, hvilket er afgørende for applikationens funktionalitet.
+    *   **Global Sidebar:** Konstruerer den primære navigationsmenu og viser global statusinformation (antal indlæste aktier, antal favoritter).
+*   **Afhængigheder:**
+    *   **Interne Moduler:** `core.data.csv_processor`, `core.favorites_manager`.
+    *   **Eksterne Biblioteker:** `streamlit`, `os`, `glob`.
 
-1.  **Hent Data:** Henter den nødvendige data fra `st.session_state` (f.eks. `df_raw = st.session_state['processed_dataframe']`).
-2.  **Sidebar/Input:** Tegner de specifikke input-widgets for siden (f.eks. profil-vælger, regions-filter, avancerede vægt-skydere) i `st.sidebar`.
-3.  **Kald Kerne-logik:** Kalder den relevante funktion fra `core/` (f.eks. `screen_stocks_value(...)` eller `get_valuation_data(...)`).
-4.  **Vis Resultater:** Formaterer de returnerede data og viser dem i hovedområdet ved hjælp af `st.metric`, `st.dataframe`, `plotly_chart` og især `AgGrid`.
+### `pages/value_screener.py` og `pages/multibagger_screener.py`
 
-## Interaktiv Tabel (`st-aggrid`)
+*   **Formål:** Disse filer implementerer UI'et for de to primære screeningssider. Deres struktur er næsten identisk, hvilket sikrer en konsistent brugeroplevelse og gør koden lettere at vedligeholde.
+*   **Nøglekomponenter:**
+    *   **Sidebar Controls:** Bygger sidebar-menuen med specifikke indstillinger for den valgte screener, herunder valg af profil, regioner og (i avanceret tilstand) justerbare vægt-sliders for hver screeningsparameter.
+    *   **Undo/Redo Funktionalitet:** Implementerer en simpel historik for vægtjusteringer i `st.session_state`, så brugeren kan fortryde og gendanne ændringer.
+    *   **Screening Kald:** Kalder den relevante kernefunktion (f.eks. `screen_stocks_value`) med data fra `session_state` og de aktuelle indstillinger fra sidebaren.
+    *   **Resultatvisning (AgGrid):**
+        *   Bruger `st-aggrid` til at vise de filtrerede og sorterede resultater i en interaktiv tabel.
+        *   Anvender `GridOptionsBuilder` til programmatisk at konfigurere tabellen.
+        *   Integrerer specialiserede JavaScript-funktioner (`JsCode`) fra `utils/aggrid_helpers.py` til at rendere klikbare favorit-ikoner, links til tickers og tilpasset formatering af tal.
+    *   **Favorit-håndtering:** Logikken til at opdatere favoritlisten er implementeret direkte på siden. Den sammenligner tilstanden af `is_favorite`-kolonnen før og efter brugerinteraktion i AgGrid for at bestemme, hvilke tickers der skal tilføjes eller fjernes.
+*   **Afhængigheder:**
+    *   **Interne Moduler:** `core.screening.*`, `config_loader`, `core.favorites_manager`, `utils.aggrid_helpers`, `utils.validation`.
+    *   **Eksterne Biblioteker:** `streamlit`, `pandas`, `st_aggrid`.
 
-Den interaktive tabel er en central del af brugeroplevelsen.
+### `pages/favorites.py`
 
-*   **`safe_aggrid_display`:** Som beskrevet i `UTILITIES.md`, bruges denne wrapper til at vise tabellen og fange eventuelle fejl, så appen ikke går ned. Den beregner også en dynamisk højde for tabellen for at undgå unødvendig scrolling.
-*   **`GridOptionsBuilder`:** Dette er et hjælpeværktøj fra `st-aggrid` til at bygge den komplekse JSON-konfiguration for tabellen på en Pythonisk måde.
-*   **JavaScript Integration (`utils/aggrid_helpers.py`):**
-    -   For at opnå avanceret interaktivitet (som klikbare favorit-knapper) og custom formatering (som "$1.2B"), bruges `JsCode`-objekter.
-    -   **Cell Renderers:** Disse er JavaScript-klasser, der definerer, hvordan en celles HTML skal se ud og opføre sig. `JS_FAVORITE_CELL_RENDERER` opretter et `div`-element med et ikon og en `click`-event listener. Når der klikkes, bruger den AgGrids API (`params.node.setDataValue`) til at sende en opdatering tilbage til Python-backend'et.
-    -   **Value Formatters:** Disse er simple JavaScript-funktioner, der modtager en værdi og returnerer en formateret streng.
-    -   **Kommunikation (Python <-> JS):** Opdateringer fra JS til Python (f.eks. et klik på favorit-knappen) håndteres ved at fange `grid_response`-objektet. Koden tjekker derefter, om dataen i `grid_response` er forskellig fra den oprindelige data, og hvis den er, gemmes de nye favorit-statusser.
+*   **Formål:** Viser brugerens gemte favoritaktier og giver mulighed for at hente opdaterede live-data og køre en detaljeret værdiansættelse.
+*   **Nøglekomponenter:**
+    *   **Datahentning:** Indeholder knapper, der udløser kald til `get_data_for_favorites` (for live-priser) og `get_valuation_data` (for dybdegående analyse) fra `core`-modulerne.
+    *   **Resultatvisning (AgGrid):** Viser de hentede data i en AgGrid-tabel. Ligesom screener-siderne bruger den `JsCode` til at rendere et klikbart ikon, der lader brugeren fjerne en aktie fra favoritter direkte i tabellen.
+    *   **Session State Håndtering:** Bruger `st.session_state.force_favorites_update` til at signalere til andre sider, at favoritlisten er blevet ændret, hvilket kan udløse en `rerun` for at sikre, at alle UI-komponenter er synkroniserede.
+    *   **Sidebar Statistik:** Viser en opsummering af favorit-porteføljen i sidebaren, herunder antal aktier og gennemsnitlige nøgletal.
+*   **Afhængigheder:**
+    *   **Interne Moduler:** `core.favorites_manager`, `core.data.client`, `core.valuation.valuation_engine`, `utils.validation`, `utils.aggrid_helpers`.
+    *   **Eksterne Biblioteker:** `streamlit`, `pandas`, `st_aggrid`.
+
+### `pages/valuation.py`
+
+*   **Formål:** Præsenterer resultaterne af en dybdegående værdiansættelse for en eller flere udvalgte favoritaktier.
+*   **Nøglekomponenter:**
+    *   **Ticker Valg:** Bruger `st.multiselect` til at lade brugeren vælge, hvilke af deres favoritaktier der skal analyseres.
+    *   **Orkestrering af Værdiansættelse:** Kalder `ComprehensiveValuationEngine.perform_comprehensive_valuation` og viser en progress bar, mens de potentielt tidskrævende beregninger og API-kald udføres.
+    *   **Struktureret Visning:** Organiserer de komplekse resultater i en overskuelig struktur ved hjælp af `st.tabs` for hver aktie. Hver fane indeholder metrikker, grafer (via `plotly`) og opsummeringer for de forskellige analysemoduler (DCF, WACC, risiko, etc.).
+    *   **Fejlhåndtering:** Viser tydelige fejlmeddelelser, hvis en værdiansættelse for en specifik aktie fejler, uden at det afbryder visningen af de succesfulde resultater.
+*   **Afhængigheder:**
+    *   **Interne Moduler:** `core.valuation.valuation_engine`, `core.favorites_manager`, `utils.validation`, `utils.aggrid_helpers`.
+    *   **Eksterne Biblioteker:** `streamlit`, `pandas`, `plotly`.
+
+## 3. Projektstruktur og Relationer
+
+### Mappestruktur
+
+UI-koden er organiseret i en `pages/`-mappe, som er en almindelig konvention i Streamlit-projekter, selvom den indbyggede multipage-funktionalitet ikke anvendes direkte. Hovedfilen `app.py` ligger i rodmappen.
+
+```
+.
+├── app.py                      # Hoved-applikation og router
+├── pages/
+│   ├── favorites.py            # UI for favoritliste
+│   ├── multibagger_screener.py # UI for Multibagger-screener
+│   ├── valuation.py            # UI for værdiansættelsesside
+│   └── value_screener.py       # UI for Value-screener
+├── core/
+│   ├── data/
+│   ├── screening/
+│   └── valuation/
+└── utils/
+    ├── aggrid_helpers.py
+    └── validation.py
+```
+
+### Arkitektonisk Overblik
+
+Applikationen følger en klar arkitektur, hvor UI-laget (`app.py` og `pages/`) er adskilt fra forretningslogikken (`core/`).
+
+1.  **Opstart:** `app.py` starter, initialiserer `session_state` og indlæser data.
+2.  **Navigation:** Brugeren vælger en side i sidebaren. `app.py` fungerer som en router og eksekverer den relevante fil fra `pages/`-mappen.
+3.  **Interaktion:** En sidefil (f.eks. `value_screener.py`) bygger sit UI. Brugeren interagerer med widgets (sliders, knapper etc.).
+4.  **Kald til Core:** Brugerinteraktioner udløser kald til funktioner i `core/`-mapperne. For eksempel kalder `value_screener.py` `screen_stocks_value()` fra `core/screening/`.
+5.  **Dataretur:** `core`-funktionerne returnerer resultater (typisk som en Pandas DataFrame eller en dictionary) til den kaldende side-fil.
+6.  **Rendering:** Side-filen formaterer de modtagne data og viser dem ved hjælp af Streamlit-komponenter, primært `st-aggrid`.
+7.  **State Opdatering:** Hvis brugeren foretager en handling, der ændrer den delte tilstand (f.eks. tilføjer en favorit), opdateres `st.session_state.favorites`. Dette sikrer, at ændringen er tilgængelig for alle andre sider ved næste `rerun`.
