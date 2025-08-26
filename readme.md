@@ -32,7 +32,7 @@ Værktøjet er bygget til at være interaktivt og fleksibelt, så brugeren kan t
     numpy
     plotly
     streamlit-aggrid
-    yfinance  # Tilføjet som fallback for API-data
+    yfinance  
 
     # Kommando i terminalen
     pip install -r requirements.txt
