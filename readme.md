@@ -77,11 +77,3 @@ Værktøjet er bygget til at være interaktivt og fleksibelt, så brugeren kan t
     streamlit run app.py
     ```
     Åbn den URL, der vises i din terminal, i en browser for at starte screeneren.
-
-## Bidrag
-
-Bidrag er velkomne! Hvis du har forslag til forbedringer, nye funktioner eller har fundet en fejl, er du velkommen til at oprette en "Issue" eller en "Pull Request" i dette repository.
-
-## Licens
-
-Dette projekt er licenseret under [MIT License](LICENSE.md).
