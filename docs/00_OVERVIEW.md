@@ -51,4 +51,9 @@ For en dybdegående forståelse af hver komponent, se venligst de følgende doku
 *   **[3. Screenings-motor](./03_SCREENING_ENGINE.md):** En dybdegående gennemgang af point-beregning, vægtning og den kritiske sektor-normaliseringsalgoritme.
 *   **[4. Værdiansættelses-motor](./04_VALUATION_ENGINE.md):** Forklarer den finansielle modellering bag DCF-analysen, WACC-beregning og scenarieanalyse.
 *   **[5. UI Implementering](./05_UI_IMPLEMENTATION.md):** Beskriver, hvordan Streamlit bruges til navigation, state management og integration med interaktive AgGrid-tabeller.
+<<<<<<< HEAD
 *   **[6. Værktøjer og Hjælpefunktioner](./06_UTILITIES.md):** Dækker de understøttende moduler for validering, favoritstyring og mere.
+=======
+*   **[6. Værktøjer og Hjælpefunktioner](./06_UTILITIES.md):** Dækker de understøttende moduler for validering, favoritstyring og mere.
+*   **[7. Test Suite](./07_TESTS.md):** Giver et overblik over projektets tests, herunder struktur, formål, kørselsvejledning og teststrategi (unit vs. integration).
+>>>>>>> ea9027836db9cb402e43424310d16b550ebb7eab

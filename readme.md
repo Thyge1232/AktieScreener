@@ -54,8 +54,18 @@ Værktøjet kombinerer en kraftfuld backend-motor med et interaktivt interface, 
     yfinance
     plotly
     streamlit-aggrid
+<<<<<<< HEAD
     ```
     ```bash
+=======
+<<<<<<< HEAD
+    yfinance  
+=======
+    yfinance
+>>>>>>> ff8234e9f2e4e33f3a08729290b9480581869560
+
+    # Kommando i terminalen
+>>>>>>> ea9027836db9cb402e43424310d16b550ebb7eab
     pip install -r requirements.txt
     ```
 
@@ -84,6 +94,7 @@ Værktøjet kombinerer en kraftfuld backend-motor med et interaktivt interface, 
     ```bash
     streamlit run app.py
     ```
+<<<<<<< HEAD
     Åbn den URL, der vises i terminalen (typisk http://localhost:8501), for at bruge applikationen.
 
 ## 🤝 Bidrag
@@ -100,3 +111,6 @@ Bidrag er meget velkomne! Applikationen er bygget modulært, hvilket gør det ne
 ## 📜 Licens
 
 Dette projekt er distribueret under **MIT-licensen**. Se filen [LICENSE.md](LICENSE.md) for yderligere oplysninger.
+=======
+    Åbn den URL, der vises i din terminal, i en browser for at starte screeneren.
+>>>>>>> ea9027836db9cb402e43424310d16b550ebb7eab
