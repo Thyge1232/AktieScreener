@@ -69,7 +69,7 @@ Værktøjet kombinerer en kraftfuld backend-motor med et interaktivt interface, 
     pip install -r requirements.txt
     ```
 
-4.  **Konfigurer API Nøgle (Anbefalet):**
+4.  **Konfigurer API Nøgle:**
     For at bruge den fulde funktionalitet, især værdiansættelsesmodulet, skal du have en gratis API-nøgle fra [Alpha Vantage](https://www.alphavantage.co/).
     Opret filen `.streamlit/secrets.toml` og tilføj:
     ```toml
