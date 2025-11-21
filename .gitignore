@@ -1,3 +1,46 @@
-.streamlit/secrets.toml
+# --- Python Standard ---
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# --- Virtuelle Miljøer (MEGET VIGTIGT) ---
+# Du har både .venv og venv mapper i dit billede. 
+# Disse må ALDRIG uploades, da de indeholder tusindvis af biblioteksfiler.
+.venv/
+venv/
+env/
+ENV/
+
+# --- Streamlit ---
+# Kun secrets skal ignoreres. config.toml må gerne uploades.
+.streamlit/secrets.toml
+
+# --- Projekt Specifik Cache ---
+# Baseret på mapperne i dit billede
+.streamlit_cache_enhanced/
+.streamlit_cache_v2/
+*.db
+*.sqlite3
+
+# --- Data filer ---
+# Du vil ikke uploade dine rådata eller Excel/CSV filer (fx "finviz (1)")
+
+*.xlsx
+*.xls
+
+
+# --- Bruger Data / Lokal State ---
+# favorites.txt ser ud til at gemme lokale præferencer. 
+# Hvis andre cloner repoet, vil de have deres egne favoritter.
+favorites.txt
+
+# --- IDE og Værktøjer ---
+# .continue mappen (fra din AI assistent) skal ikke deles
+.continue/
+.vscode/
+.idea/
+
+# --- Operativsystem Filer ---
+.DS_Store
+Thumbs.db
